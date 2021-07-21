@@ -4,19 +4,29 @@ import { curry, __ } from "ramda"
 import { BroadcastDocument, BroadcastSchema } from "./models/Broadcast"
 import { ContactDocument, ContactSchema } from "./models/Contact"
 import { FlowDocument, FlowSchema } from "./models/Flow"
-import { FunctionDocument, FunctionSchema } from "./models/Function"
+import { TaskDocument, TaskSchema } from "./models/Task"
+
+export let MAX_DB_OPERATIONS = {
+  set dangerouslyChangeValue(newValue) {
+    this.value = newValue
+  },
+  resetValue() {
+    this.value = 100
+  },
+  value: 100
+}
 
 // UNION TYPES
 
 export type SchemaUnion =
   | FlowSchema
-  | FunctionSchema
+  | TaskSchema
   | BroadcastSchema
   | ContactSchema
 
 export type DocumentUnion =
   | FlowDocument
-  | FunctionDocument
+  | TaskDocument
   | BroadcastDocument
   | ContactDocument
 
@@ -33,11 +43,11 @@ const encrypt = (obj: Object) => {
     cipher.final()
   ])
 
-  return `${iv.toString("hex")}.${encrypted.toString("hex")}`
+  return `${iv.toString("hex")}_${encrypted.toString("hex")}`
 }
 
 const decrypt = (hash: string) => {
-  const [iv, content] = hash.split(".")
+  const [iv, content] = hash.split("_")
   const decipher = createDecipheriv(
     algorithm,
     secretKey,
@@ -134,6 +144,8 @@ export const createDoc = curry(async (Model: BaseModel, schema: BaseSchema) => {
 // create multiple documents
 export const createDocs = curry(
   async (Model: BaseModel, schemas: BaseSchemas) => {
+    const count = schemas.length
+    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only create up to ${MAX_DB_OPERATIONS.value} at a time.`)
     return await Model.insertMany(schemas)
   }
 )
@@ -157,6 +169,8 @@ export const updateDocsByQuery = curry(
     filterQuery: BaseFilterQuery,
     schemas: BaseSchemas
   ) => {
+    const count = await getDocsCountByQuery(Model, filterQuery)
+    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only update up to ${MAX_DB_OPERATIONS.value} at a time.`)
     return await Model.updateMany(filterQuery, schemas, {
       returnOriginal: false,
       omitUndefined: true
@@ -191,6 +205,8 @@ export const deleteDoc = async (Model: BaseModel, id: string) => {
 // delete multiple documents by query
 export const deleteDocsByQuery = curry(
   async (Model: BaseModel, filterQuery: BaseFilterQuery) => {
+    const count = await getDocsCountByQuery(Model, filterQuery)
+    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only delete up to ${MAX_DB_OPERATIONS.value} at a time.`)
     return await Model.deleteMany(filterQuery)
   }
 )
@@ -251,15 +267,23 @@ export const getDocsByTag = curry((Model: BaseModel, tags: string[]) => {
   return getDocsByQuery(Model, tagQuery(tags))
 })
 
+// get multiple documents by id
+export const getDocsById = curry((Model: BaseModel, ids: string[]) => {
+  return getDocsByQuery(Model, idQuery(ids))
+})
+
 // get multiple documents by query and paginate
 export const getDocsByQueryPaginate = curry(
   async (
     Model: BaseModel,
     filterQuery: BaseFilterQuery,
     cursor: string = "",
-    limit: number = 50
+    limit: number = MAX_DB_OPERATIONS.value
   ) => {
     let docQuery = getDocsByQuery(Model, filterQuery)
+
+    limit = Math.ceil(limit)
+    if(limit > MAX_DB_OPERATIONS.value || limit <= 0) throw Error(`You can only get up to ${MAX_DB_OPERATIONS.value} at a time and your limit must be more than 0.`)
 
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
@@ -276,7 +300,7 @@ export const getDocsByQueryPaginate = curry(
 
     const nextCursor = hasMore ? encrypt(data[data.length - 1]._id) : cursor
 
-    return { data, hasMore, cursor: nextCursor }
+    return { data, hasMore, limit, cursor: nextCursor }
   }
 )
 
@@ -286,7 +310,7 @@ export const getDocsByTagPaginate = curry(
     Model: BaseModel,
     tags: string[],
     cursor: string = "",
-    limit: number = 50
+    limit: number = MAX_DB_OPERATIONS.value
   ) => {
     return await getDocsByQueryPaginate(Model, tagQuery(tags), cursor, limit)
   }
@@ -298,7 +322,7 @@ export const getDocsByIdPaginate = curry(
     Model: BaseModel,
     ids: string[],
     cursor: string = "",
-    limit: number = 50
+    limit: number = MAX_DB_OPERATIONS.value
   ) => {
     return await getDocsByQueryPaginate(Model, idQuery(ids), cursor, limit)
   }

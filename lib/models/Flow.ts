@@ -8,7 +8,7 @@ import {
   SchemaTimestampsConfig,
   Types
 } from "mongoose"
-import { FunctionDocument } from "./Function"
+import { TaskDocument } from "./Task"
 
 interface ParameterSchema {
   type: string
@@ -19,13 +19,13 @@ interface ParameterDocument extends ParameterSchema {
   body: string
 }
 
-interface ChosenFunctionSchema {
-  function?: Types.ObjectId[]
+interface ChosenTaskSchema {
+  task?: Types.ObjectId[]
   parameters?: ParameterSchema[]
 }
 
-interface ChosenFunctionDocument extends ChosenFunctionSchema {
-  function: Types.Array<PopulatedDoc<FunctionDocument>>
+interface ChosenTaskDocument extends ChosenTaskSchema {
+  task: Types.Array<PopulatedDoc<TaskDocument>>
   parameters: Types.Array<ParameterDocument>
 }
 
@@ -33,12 +33,12 @@ interface StepSchema {
   keywordPresent: boolean
   keywords?: string[]
   variableBody: boolean
-  functions?: ChosenFunctionSchema[]
+  tasks?: ChosenTaskSchema[]
 }
 
 interface StepDocument extends StepSchema {
   keywords: Types.Array<string>
-  functions: Types.Array<ChosenFunctionDocument>
+  tasks: Types.Array<ChosenTaskDocument>
 }
 
 export interface FlowSchema extends Document {
@@ -70,11 +70,11 @@ const parameterSchema = new Schema(
   { _id: false }
 )
 
-const chosenFunctionSchema = new Schema(
+const chosenTaskSchema = new Schema(
   {
-    function: {
+    task: {
       type: Schema.Types.ObjectId,
-      ref: "Function"
+      ref: "Task"
     },
     parameters: [
       {
@@ -100,9 +100,9 @@ const stepSchema = new Schema(
       type: Boolean,
       required: [true, "please indicate whether a variable body is present"]
     },
-    functions: [
+    tasks: [
       {
-        type: chosenFunctionSchema
+        type: chosenTaskSchema
       }
     ]
   },

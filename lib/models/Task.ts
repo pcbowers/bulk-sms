@@ -7,19 +7,19 @@ import {
   SchemaTimestampsConfig
 } from "mongoose"
 
-export interface FunctionSchema extends Document {
+export interface TaskSchema extends Document {
   name: string
   description?: string
   numParameters: number
 }
 
-export interface FunctionDocument
-  extends FunctionSchema,
+export interface TaskDocument
+  extends TaskSchema,
     SchemaTimestampsConfig {
   description: string
 }
 
-const functionSchema = new Schema<FunctionDocument>(
+const taskSchema = new Schema<TaskDocument>(
   {
     name: {
       type: String,
@@ -37,5 +37,5 @@ const functionSchema = new Schema<FunctionDocument>(
   { timestamps: true }
 )
 
-export const Function: Model<FunctionDocument> =
-  models.Function || model("Function", functionSchema)
+export const Task: Model<TaskDocument> =
+  models.Task || model("Task", taskSchema)
