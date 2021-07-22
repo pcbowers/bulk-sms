@@ -13,10 +13,10 @@ async function handler(req, res) {
   // const count = req.cookies.test === undefined ? 0 : parseInt(req.cookies.test) + 1
   // res.cookie("test", count)
 
-  try {
-    res.limitMethods(["GET"])
-    await res.authenticateUser()
+  if (!res.limitMethods(["GET"]) || !(await res.authenticateUser()))
+    return res.end()
 
+  try {
     const {
       cursor = "",
       tags = "",

@@ -145,7 +145,10 @@ export const createDoc = curry(async (Model: BaseModel, schema: BaseSchema) => {
 export const createDocs = curry(
   async (Model: BaseModel, schemas: BaseSchemas) => {
     const count = schemas.length
-    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only create up to ${MAX_DB_OPERATIONS.value} at a time.`)
+    if (count > MAX_DB_OPERATIONS.value)
+      throw Error(
+        `You can only create up to ${MAX_DB_OPERATIONS.value} at a time.`
+      )
     return await Model.insertMany(schemas)
   }
 )
@@ -170,7 +173,10 @@ export const updateDocsByQuery = curry(
     schemas: BaseSchemas
   ) => {
     const count = await getDocsCountByQuery(Model, filterQuery)
-    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only update up to ${MAX_DB_OPERATIONS.value} at a time.`)
+    if (count > MAX_DB_OPERATIONS.value)
+      throw Error(
+        `You can only update up to ${MAX_DB_OPERATIONS.value} at a time.`
+      )
     return await Model.updateMany(filterQuery, schemas, {
       returnOriginal: false,
       omitUndefined: true
@@ -198,15 +204,18 @@ export const updateDocsById = curry(
 // DELETE Calls
 
 // delete a document
-export const deleteDoc = async (Model: BaseModel, id: string) => {
+export const deleteDoc = curry(async (Model: BaseModel, id: string) => {
   return await Model.findByIdAndDelete(id)
-}
+})
 
 // delete multiple documents by query
 export const deleteDocsByQuery = curry(
   async (Model: BaseModel, filterQuery: BaseFilterQuery) => {
     const count = await getDocsCountByQuery(Model, filterQuery)
-    if(count > MAX_DB_OPERATIONS.value) throw Error(`You can only delete up to ${MAX_DB_OPERATIONS.value} at a time.`)
+    if (count > MAX_DB_OPERATIONS.value)
+      throw Error(
+        `You can only delete up to ${MAX_DB_OPERATIONS.value} at a time.`
+      )
     return await Model.deleteMany(filterQuery)
   }
 )
@@ -283,7 +292,10 @@ export const getDocsByQueryPaginate = curry(
     let docQuery = getDocsByQuery(Model, filterQuery)
 
     limit = Math.ceil(limit)
-    if(limit > MAX_DB_OPERATIONS.value || limit <= 0) throw Error(`You can only get up to ${MAX_DB_OPERATIONS.value} at a time and your limit must be more than 0.`)
+    if (limit > MAX_DB_OPERATIONS.value || limit <= 0)
+      throw Error(
+        `You can only get up to ${MAX_DB_OPERATIONS.value} at a time and your limit must be more than 0.`
+      )
 
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
@@ -331,15 +343,16 @@ export const getDocsByIdPaginate = curry(
 // GET Field Calls
 
 // get a field based on a query and path
-export const getField = async (query: BaseQuerySingle, fieldPath: string) => {
-  return getDeepNestedValue(fieldPath, await query.exec())
-}
+export const getField = curry(
+  async (query: BaseQuerySingle, fieldPath: string) => {
+    return getDeepNestedValue(fieldPath, await query.exec())
+  }
+)
 
 // get multiple fields based on a query and path
-export const getFields = async (
-  query: BaseQueryMultiple,
-  fieldPath: string
-) => {
-  const data = await query.exec()
-  return data.map((doc) => getDeepNestedValue(fieldPath, doc))
-}
+export const getFields = curry(
+  async (query: BaseQueryMultiple, fieldPath: string) => {
+    const data = await query.exec()
+    return data.map((doc) => getDeepNestedValue(fieldPath, doc))
+  }
+)

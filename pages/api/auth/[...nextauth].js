@@ -9,10 +9,19 @@ export default NextAuth({
       clientSecret: process.env.GOOGLE_SECRET_ID
     })
   ],
-  callbacks: {
-    async SigningKeyContext(user, account, profile) {
-      // TODO: use fetcher, pull admins
-      return true
-    }
+  jwt: {
+    secret: process.env.NEXTAUTH_JWT_SECRET,
+    signingKey: JSON.stringify({
+      kty: "oct",
+      kid: process.env.NEXTAUTH_SIGNING_KID,
+      alg: "HS512",
+      k: process.env.NEXTAUTH_SIGNING_KEY
+    })
   }
+  // callbacks: {
+  //   async signIn(user, account, profile) {
+  //     // TODO: use fetcher, pull admins
+  //     return true
+  //   }
+  // }
 })
