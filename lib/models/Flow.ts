@@ -10,34 +10,29 @@ import {
 } from "mongoose"
 import { TaskDocument } from "./Task"
 
-interface ParameterSchema {
-  type: string
-  body?: string
-}
-
-interface ParameterDocument extends ParameterSchema {
-  body: string
-}
-
 interface ChosenTaskSchema {
-  task?: Types.ObjectId[]
-  parameters?: ParameterSchema[]
+  task?: Types.ObjectId
+  parameters?: string[]
 }
 
 interface ChosenTaskDocument extends ChosenTaskSchema {
-  task: Types.Array<PopulatedDoc<TaskDocument>>
-  parameters: Types.Array<ParameterDocument>
+  task: PopulatedDoc<TaskDocument>
+  parameters: Types.Array<string>
 }
 
 interface StepSchema {
-  keywordPresent: boolean
+  name?: string
+  description?: string
   keywords?: string[]
-  variableBody: boolean
+  inbox?: Types.ObjectId
   tasks?: ChosenTaskSchema[]
 }
 
 interface StepDocument extends StepSchema {
+  name: string
+  description: string
   keywords: Types.Array<string>
+  inbox: PopulatedDoc<TaskDocument>
   tasks: Types.Array<ChosenTaskDocument>
 }
 
@@ -45,32 +40,18 @@ export interface FlowSchema extends Document {
   name: string
   description?: string
   adminOnly?: boolean
-  index?: number
+  sortOrder?: number
   steps: StepSchema[]
 }
 
 export interface FlowDocument extends FlowSchema, SchemaTimestampsConfig {
   description: string
   adminOnly: boolean
-  index: number
+  sortOrder: number
   steps: Types.Array<StepDocument>
 }
 
-const parameterSchema = new Schema(
-  {
-    type: {
-      type: String,
-      required: [true, "please speicfy a type (variableBody, fixedBody"]
-    },
-    body: {
-      type: String,
-      default: ""
-    }
-  },
-  { _id: false }
-)
-
-const chosenTaskSchema = new Schema(
+const chosenTaskSchema = new Schema<ChosenTaskDocument>(
   {
     task: {
       type: Schema.Types.ObjectId,
@@ -78,27 +59,31 @@ const chosenTaskSchema = new Schema(
     },
     parameters: [
       {
-        type: parameterSchema
+        type: String
       }
     ]
   },
   { _id: false }
 )
 
-const stepSchema = new Schema(
+const stepSchema = new Schema<StepDocument>(
   {
-    keywordPresent: {
-      type: Boolean,
-      required: [true, "please indicate whether a keyword is necessary"]
+    name: {
+      type: String,
+      default: ""
+    },
+    description: {
+      type: String,
+      default: ""
     },
     keywords: [
       {
         type: String
       }
     ],
-    variableBody: {
-      type: Boolean,
-      required: [true, "please indicate whether a variable body is present"]
+    inbox: {
+      type: Schema.Types.ObjectId,
+      ref: "Inbox"
     },
     tasks: [
       {
@@ -109,7 +94,7 @@ const stepSchema = new Schema(
   { _id: false }
 )
 
-const flowSchema = new Schema(
+const flowSchema = new Schema<FlowDocument>(
   {
     name: {
       type: String,
@@ -123,7 +108,7 @@ const flowSchema = new Schema(
       type: Boolean,
       default: false
     },
-    index: {
+    sortOrder: {
       type: Number,
       default: 0
     },

@@ -14,7 +14,6 @@ export interface ContactSchema extends Document {
   email?: string
   admin: boolean
   twilioBindingId: string
-  twilioAccountId: string
   twilioIdentity: string
   tags?: string[]
 }
@@ -22,13 +21,13 @@ export interface ContactSchema extends Document {
 export interface ContactDocument extends ContactSchema, SchemaTimestampsConfig {
   tags: Types.Array<string>
   name: string
-  email: string
 }
 
 const contactSchema = new Schema<ContactDocument>(
   {
     phoneNumber: {
       type: String,
+      unique: true,
       required: [true, "please specify a phone number"]
     },
     name: {
@@ -37,7 +36,8 @@ const contactSchema = new Schema<ContactDocument>(
     },
     email: {
       type: String,
-      default: ""
+      unique: true,
+      sparse: true
     },
     admin: {
       type: Boolean,
@@ -45,14 +45,12 @@ const contactSchema = new Schema<ContactDocument>(
     },
     twilioBindingId: {
       type: String,
+      unique: true,
       required: [true, "please specify a twilio binding id"]
-    },
-    twilioAccountId: {
-      type: String,
-      required: [true, "please specify a twilio account id"]
     },
     twilioIdentity: {
       type: String,
+      unique: true,
       required: [true, "please specify a twilio identity"]
     },
     tags: [

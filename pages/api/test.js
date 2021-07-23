@@ -1,8 +1,8 @@
 import { pipe } from "ramda"
 import {
   connectToDatabase,
+  getBindings,
   MAX_DB_OPERATIONS,
-  paginate,
   withCookies,
   withMethod,
   withUserAuthentication
@@ -26,15 +26,14 @@ async function handler(req, res) {
 
     await connectToDatabase()
 
-    res
-      .status(200)
-      .json(
-        await paginate.contacts.byTag(
-          (tags || tag).split(","),
-          cursor,
-          Number(limit)
-        )
-      )
+    res.status(200).json(
+      // await paginate.contacts.byTag(
+      //   (tags || tag).split(","),
+      //   cursor,
+      //   Number(limit)
+      // )
+      await getBindings()
+    )
   } catch (error) {
     res.status(400).json({ error: error.message })
   }

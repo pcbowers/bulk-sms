@@ -4,6 +4,7 @@ import { curry, __ } from "ramda"
 import { BroadcastDocument, BroadcastSchema } from "./models/Broadcast"
 import { ContactDocument, ContactSchema } from "./models/Contact"
 import { FlowDocument, FlowSchema } from "./models/Flow"
+import { InboxDocument, InboxSchema } from "./models/Inbox"
 import { TaskDocument, TaskSchema } from "./models/Task"
 
 export let MAX_DB_OPERATIONS = {
@@ -23,12 +24,14 @@ export type SchemaUnion =
   | TaskSchema
   | BroadcastSchema
   | ContactSchema
+  | InboxSchema
 
 export type DocumentUnion =
   | Model<FlowDocument>
   | Model<TaskDocument>
   | Model<BroadcastDocument>
   | Model<ContactDocument>
+  | Model<InboxDocument>
 
 // GENERIC FUNCTIONS
 
@@ -108,29 +111,36 @@ type BaseQueryMultiple = Query<DocumentUnion[], DocumentUnion>
 
 // MONGODB Queries
 
-/**
- * select all documents with any of the given ids
- * @param ids an array of IDs
- * @returns A filter query
- */
-export const idQuery = (ids: string[]): BaseFilterQuery => {
+export const fieldHasAnyQuery = (
+  field: string,
+  values: string | string[]
+): BaseFilterQuery => {
+  if (!Array.isArray(values)) values = values.split(",")
   return {
-    _id: {
-      $in: ids
+    [field]: {
+      $in: values
     }
   }
 }
 
-/**
- * select all documents with all of the given tags
- * @param tags an array of tags
- * @returns A filter query
- */
-export const tagQuery = (tags: string[]): BaseFilterQuery => {
+export const fieldHasAllQuery = (
+  field: string,
+  values: string | string[]
+): BaseFilterQuery => {
+  if (!Array.isArray(values)) values = values.split(",")
   return {
-    tags: {
-      $all: tags
+    [field]: {
+      $all: values
     }
+  }
+}
+
+export const fieldMatchesQuery = (
+  field: string,
+  value: string
+): BaseFilterQuery => {
+  return {
+    [field]: value
   }
 }
 
@@ -188,16 +198,34 @@ export const updateDocsByQuery = curry(
 export const updateDocs = updateDocsByQuery(__, {})
 
 // update multiple docs by tag
-export const updateDocsByTag = curry(
-  async (Model: BaseModel, tags: string[], schemas: BaseSchemas) => {
-    return await updateDocsByQuery(Model, tagQuery(tags), schemas)
+export const updateDocsWithAll = curry(
+  async (
+    Model: BaseModel,
+    field: string,
+    values: string[],
+    schemas: BaseSchemas
+  ) => {
+    return await updateDocsByQuery(
+      Model,
+      fieldHasAllQuery(field, values),
+      schemas
+    )
   }
 )
 
 // update multiple docs by ID
-export const updateDocsById = curry(
-  async (Model: BaseModel, ids: string[], schemas: BaseSchemas) => {
-    return await updateDocsByQuery(Model, idQuery(ids), schemas)
+export const updateDocsWithAny = curry(
+  async (
+    Model: BaseModel,
+    field: string,
+    values: string[],
+    schemas: BaseSchemas
+  ) => {
+    return await updateDocsByQuery(
+      Model,
+      fieldHasAnyQuery(field, values),
+      schemas
+    )
   }
 )
 
@@ -225,14 +253,16 @@ export const deleteDocsByQuery = curry(
 export const deleteDocs = deleteDocsByQuery(__, {})
 
 // delete multiple documents by id
-export const deleteDocsById = curry(async (Model: BaseModel, ids: string[]) => {
-  return await deleteDocsByQuery(Model, idQuery(ids))
-})
+export const deleteDocsWithAny = curry(
+  async (Model: BaseModel, field: string, values: string[]) => {
+    return await deleteDocsByQuery(Model, fieldHasAnyQuery(field, values))
+  }
+)
 
 // delete multiple documents by tag
-export const deleteDocsByTag = curry(
-  async (Model: BaseModel, tags: string[]) => {
-    return await deleteDocsByQuery(Model, tagQuery(tags))
+export const deleteDocsWithAll = curry(
+  async (Model: BaseModel, field: string, values: string[]) => {
+    return await deleteDocsByQuery(Model, fieldHasAllQuery(field, values))
   }
 )
 
@@ -262,6 +292,13 @@ export const getDocByQuery = curry(
   }
 )
 
+// get a single document by query
+export const getDocByValue = curry(
+  (Model: BaseModel, field: string, value: string) => {
+    return getDocByQuery(Model, fieldMatchesQuery(field, value))
+  }
+)
+
 // get multiple documents by query
 export const getDocsByQuery = curry(
   (Model: BaseModel, filterQuery: BaseFilterQuery) => {
@@ -273,23 +310,30 @@ export const getDocsByQuery = curry(
 export const getDocs = getDocsByQuery(__, {})
 
 // get multiple documents by tag
-export const getDocsByTag = curry((Model: BaseModel, tags: string[]) => {
-  return getDocsByQuery(Model, tagQuery(tags))
-})
+export const getDocsWithAll = curry(
+  (Model: BaseModel, field: string, values: string[]) => {
+    return getDocsByQuery(Model, fieldHasAllQuery(field, values))
+  }
+)
 
 // get multiple documents by id
-export const getDocsById = curry((Model: BaseModel, ids: string[]) => {
-  return getDocsByQuery(Model, idQuery(ids))
-})
+export const getDocsWithAny = curry(
+  (Model: BaseModel, field: string, values: string[]) => {
+    return getDocsByQuery(Model, fieldHasAnyQuery(field, values))
+  }
+)
 
 // get multiple documents by query and paginate
 export const getDocsByQueryPaginate = curry(
   async (
     Model: BaseModel,
     filterQuery: BaseFilterQuery,
-    cursor: string = "",
-    limit: number = MAX_DB_OPERATIONS.value
+    cursor: string,
+    limit: number
   ) => {
+    cursor = cursor || ""
+    limit = limit || MAX_DB_OPERATIONS.value
+
     let docQuery = getDocsByQuery(Model, filterQuery)
 
     limit = Math.ceil(limit)
@@ -318,26 +362,38 @@ export const getDocsByQueryPaginate = curry(
 )
 
 // get multiple documents by tags and paginate
-export const getDocsByTagPaginate = curry(
+export const getDocsWithAllPaginate = curry(
   async (
     Model: BaseModel,
-    tags: string[],
-    cursor: string = "",
-    limit: number = MAX_DB_OPERATIONS.value
+    field: string,
+    values: string[],
+    cursor: string,
+    limit: number
   ) => {
-    return await getDocsByQueryPaginate(Model, tagQuery(tags), cursor, limit)
+    return await getDocsByQueryPaginate(
+      Model,
+      fieldHasAllQuery(field, values),
+      cursor,
+      limit
+    )
   }
 )
 
 // get multiple documents by IDs and paginate
-export const getDocsByIdPaginate = curry(
+export const getDocsWithAnyPaginate = curry(
   async (
     Model: BaseModel,
-    ids: string[],
-    cursor: string = "",
-    limit: number = MAX_DB_OPERATIONS.value
+    field: string,
+    values: string[],
+    cursor: string,
+    limit: number
   ) => {
-    return await getDocsByQueryPaginate(Model, idQuery(ids), cursor, limit)
+    return await getDocsByQueryPaginate(
+      Model,
+      fieldHasAnyQuery(field, values),
+      cursor,
+      limit
+    )
   }
 )
 

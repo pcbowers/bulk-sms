@@ -8,6 +8,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.4.1",
     "cookie": "^0.4.1",
     "crypto": "^1.0.1",
     "daisyui": "^1.10.0",
