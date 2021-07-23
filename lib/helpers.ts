@@ -7,7 +7,7 @@ import { FlowDocument, FlowSchema } from "./models/Flow"
 import { TaskDocument, TaskSchema } from "./models/Task"
 
 export let MAX_DB_OPERATIONS = {
-  set dangerouslyChangeValue(newValue) {
+  set dangerouslyChangeValue(newValue: number) {
     this.value = newValue
   },
   resetValue() {
@@ -25,10 +25,10 @@ export type SchemaUnion =
   | ContactSchema
 
 export type DocumentUnion =
-  | FlowDocument
-  | TaskDocument
-  | BroadcastDocument
-  | ContactDocument
+  | Model<FlowDocument>
+  | Model<TaskDocument>
+  | Model<BroadcastDocument>
+  | Model<ContactDocument>
 
 // GENERIC FUNCTIONS
 
@@ -99,7 +99,7 @@ export const getDeepNestedValue = (
 
 // base mongoose types
 
-type BaseModel = Model<DocumentUnion>
+type BaseModel = DocumentUnion
 type BaseSchema = SchemaUnion
 type BaseSchemas = SchemaUnion[]
 type BaseFilterQuery = FilterQuery<DocumentUnion>
@@ -158,7 +158,7 @@ export const createDocs = curry(
 // update a single document
 export const updateDoc = curry(
   async (Model: BaseModel, id: string, schema: BaseSchema) => {
-    return await Model.findByIdAndUpdate(id, schema, {
+    return await (Model as any).findByIdAndUpdate(id, schema, {
       returnOriginal: false,
       omitUndefined: true
     })
@@ -172,7 +172,7 @@ export const updateDocsByQuery = curry(
     filterQuery: BaseFilterQuery,
     schemas: BaseSchemas
   ) => {
-    const count = await getDocsCountByQuery(Model, filterQuery)
+    const count = await getDocsCountByQuery(Model, filterQuery).exec()
     if (count > MAX_DB_OPERATIONS.value)
       throw Error(
         `You can only update up to ${MAX_DB_OPERATIONS.value} at a time.`
@@ -211,12 +211,13 @@ export const deleteDoc = curry(async (Model: BaseModel, id: string) => {
 // delete multiple documents by query
 export const deleteDocsByQuery = curry(
   async (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    const count = await getDocsCountByQuery(Model, filterQuery)
+    const count = await getDocsCountByQuery(Model, filterQuery).exec()
     if (count > MAX_DB_OPERATIONS.value)
       throw Error(
         `You can only delete up to ${MAX_DB_OPERATIONS.value} at a time.`
       )
-    return await Model.deleteMany(filterQuery)
+
+    return await Model.deleteMany(filterQuery as any)
   }
 )
 
@@ -242,7 +243,7 @@ export const deleteDocsByTag = curry(
 // get a count of multiple documents by query
 export const getDocsCountByQuery = curry(
   (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    return Model.countDocuments(filterQuery)
+    return Model.countDocuments(filterQuery as any)
   }
 )
 
@@ -250,9 +251,9 @@ export const getDocsCountByQuery = curry(
 export const getDocsCount = getDocsCountByQuery(__, {})
 
 // get a document
-export const getDoc = (Model: BaseModel, id: string) => {
+export const getDoc = curry((Model: BaseModel, id: string) => {
   return Model.findById(id)
-}
+})
 
 // get a single document by query
 export const getDocByQuery = curry(
@@ -264,7 +265,7 @@ export const getDocByQuery = curry(
 // get multiple documents by query
 export const getDocsByQuery = curry(
   (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    return Model.find(filterQuery)
+    return (Model as any).find(filterQuery)
   }
 )
 
