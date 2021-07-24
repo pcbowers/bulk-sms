@@ -12,7 +12,9 @@ import { Contact } from "./models/Contact"
 // middlewares
 export { MAX_DB_OPERATIONS } from "./helpers"
 export { withCookies } from "./middleware/cookies"
+export { withDatabase } from "./middleware/database"
 export { withMethod } from "./middleware/method"
+export { withSession } from "./middleware/session"
 export { withTwilioAuthentication } from "./middleware/twilio_auth"
 export { withUserAuthentication } from "./middleware/user_auth"
 // other
