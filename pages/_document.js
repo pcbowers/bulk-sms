@@ -20,12 +20,12 @@ class MyDocument extends Document {
           ></div>
           <div
             className="g_id_signin"
-            data-type="icon"
+            data-type="standard"
             data-size="large"
             data-theme="outline"
             data-text="sign_in_with"
             data-shape="circle"
-            data-width="120"
+            data-width="250"
           ></div>
           <Main />
           <NextScript />
