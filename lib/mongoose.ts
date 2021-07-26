@@ -1,17 +1,24 @@
 /* global process, global */
 
-import mongoose from "mongoose"
+import mongoose, { Mongoose } from "mongoose"
 
-const { MONGODB_URI } = process.env
+declare module globalThis {
+  let mongoose: {
+    connection?: Mongoose
+    promise?: Promise<Mongoose>
+  }
+}
+
+const MONGODB_URI = String(process.env.MONGODB_URI)
 
 if (!MONGODB_URI)
   throw new Error("please define the MONGODB_URI environment variable")
 
 // create a global connection so only 1 connection is ever created
-let cache = global.mongoose
+let cache = globalThis.mongoose
 if (!cache) {
-  global.mongoose = { connection: null, promise: null }
-  cache = global.mongoose
+  globalThis.mongoose = { connection: undefined, promise: undefined }
+  cache = globalThis.mongoose
 }
 
 export async function connectToDatabase() {

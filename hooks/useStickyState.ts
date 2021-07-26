@@ -1,25 +1,26 @@
-import { useEffect, useReducer } from "react"
+/* eslint-disable react-hooks/exhaustive-deps */
+import { Dispatch, useEffect, useState } from "react"
 import { useToggle } from "./useToggle"
 import { useWindowEvent } from "./useWindowEvent"
 
-export function useStickyReducer(reducer, defaultValue, storageKey) {
-  const [value, dispatch] = useReducer(reducer, defaultValue, () => {
+export function useStickyState(
+  defaultValue: string,
+  storageKey: string
+): [any, Dispatch<any>] {
+  const [value, setValue] = useState(() => {
     const stickyValue = window.localStorage.getItem(storageKey)
     return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue
   })
   const [canStore, toggleCanStore] = useToggle(true)
 
-  const handler = (e) => {
+  const handler = (e: StorageEvent) => {
     if (
       e.storageArea === window.localStorage &&
       e.key === storageKey &&
       e.newValue !== value
     ) {
       if (e.newValue === null) toggleCanStore()
-      dispatch({
-        type: "STORAGE_CHANGE",
-        payload: JSON.parse(e.newValue)
-      })
+      setValue(JSON.parse(String(e.newValue)))
     }
   }
 
@@ -30,5 +31,5 @@ export function useStickyReducer(reducer, defaultValue, storageKey) {
     if (!canStore) toggleCanStore()
   }, [storageKey, value])
 
-  return [value, dispatch]
+  return [value, setValue]
 }

@@ -8,16 +8,22 @@ const client = twilio(
 )
 
 export const service = client.notify.services(
-  process.env.TWILIO_NOTIFY_SERVICE_SID
+  String(process.env.TWILIO_NOTIFY_SERVICE_SID)
 )
 
-export const deleteBinding = async (id) => {
+export const deleteBinding = async (id: string) => {
   return await service.bindings(id).remove()
 }
 
 export const deleteBindings = pluralizer(deleteBinding)
 
-export const createBinding = async ({ phoneNumber, ...otherValues }) => {
+export const createBinding = async ({
+  phoneNumber,
+  ...otherValues
+}: {
+  phoneNumber: string
+  otherValues: []
+}) => {
   const binding = await service.bindings.create({
     identity: uuidv4(),
     bindingType: "sms",
@@ -34,7 +40,13 @@ export const createBinding = async ({ phoneNumber, ...otherValues }) => {
 
 export const createBindings = pluralizer(createBinding)
 
-export const updateBinding = async ({ id, phoneNumber }) => {
+export const updateBinding = async ({
+  id,
+  phoneNumber
+}: {
+  id: string
+  phoneNumber: string
+}) => {
   return await service.bindings.create({
     identity: id,
     bindingType: "sms",
@@ -44,7 +56,7 @@ export const updateBinding = async ({ id, phoneNumber }) => {
 
 export const updateBindings = pluralizer(updateBinding)
 
-export const getBinding = async (id) => {
+export const getBinding = async (id: string) => {
   return await service.bindings(id).fetch()
 }
 
@@ -52,15 +64,15 @@ export const getBindings = async () => {
   return await service.bindings.list()
 }
 
-export const getPhoneNumber = async (id) => {
+export const getPhoneNumber = async (id: string) => {
   return (await getBinding(id)).address
 }
 
-export const getText = async (id) => {
+export const getText = async (id: string) => {
   return await client.messages(id).fetch()
 }
 
-export const getTexts = async (id) => {
+export const getTexts = async (id: string) => {
   const phoneNumber = await getPhoneNumber(id)
   return [
     ...(await client.messages.list({
@@ -71,20 +83,28 @@ export const getTexts = async (id) => {
       from: process.env.TWILIO_NUMBER,
       to: phoneNumber
     }))
-  ].sort((a, b) => Date.parse(a.dateSent) - Date.parse(b.dateSent))
+  ].sort((a, b) => a.dateSent.getTime() - b.dateSent.getTime())
 }
 
-export const createBroadcast = async ({ identities, message = "" }) => {
+export const createBroadcast = async ({
+  identities,
+  message = ""
+}: {
+  identities: string[]
+  message?: string
+}) => {
   const id = uuidv4()
 
-  await service.notifications.create({
+  const msg = await service.notifications.create({
     identity: identities,
     body: message,
     deliveryCallbackUrl: process.env.NEXTAUTH_URL + "/api/messages/" + id
   })
 
-  msg.id = id
-  return msg
+  return {
+    ...msg,
+    id
+  }
 }
 
 // create a twiml response
