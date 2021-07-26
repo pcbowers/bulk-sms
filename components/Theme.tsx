@@ -1,7 +1,11 @@
 import { useHasMounted } from "../hooks/useHasMounted"
 import { useTheme } from "../hooks/useTheme"
 
-function ThemeClient({ delay, storageKey, defaultTheme }) {
+function ThemeClient({
+  delay = 0,
+  storageKey = "theme",
+  defaultTheme = "system default"
+}) {
   const [theme, dispatch, themes] = useTheme({
     delay,
     storageKey,
@@ -11,7 +15,10 @@ function ThemeClient({ delay, storageKey, defaultTheme }) {
   return (
     <>
       <div className="flex flex-row items-center justify-center w-full h-screen gap-1">
-        <button className="btn" onClick={() => dispatch({ type: "TOGGLE" })}>
+        <button
+          className="btn"
+          onClick={() => dispatch({ type: "TOGGLE", payload: undefined })}
+        >
           Toggle Theme
         </button>
         <button
@@ -38,7 +45,11 @@ function ThemeClient({ delay, storageKey, defaultTheme }) {
   )
 }
 
-export default function Theme({ delay, storageKey, defaultTheme }) {
+export default function Theme({
+  delay = 0,
+  storageKey = "theme",
+  defaultTheme = "system default"
+}) {
   const hasMounted = useHasMounted()
 
   if (!hasMounted) return <></>

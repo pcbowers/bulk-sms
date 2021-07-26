@@ -22,7 +22,6 @@ export const createBinding = async ({
   ...otherValues
 }: {
   phoneNumber: string
-  otherValues: []
 }) => {
   const binding = await service.bindings.create({
     identity: uuidv4(),

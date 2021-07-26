@@ -7,7 +7,7 @@ import {
   SchemaTimestampsConfig
 } from "mongoose"
 
-export interface TaskSchema extends Document {
+export interface TaskSchema {
   name: string
   description?: string
   numParameters: number
@@ -15,6 +15,7 @@ export interface TaskSchema extends Document {
 
 export interface TaskDocument
   extends TaskSchema,
+    Document,
     SchemaTimestampsConfig {
   description: string
 }

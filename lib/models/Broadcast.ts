@@ -10,7 +10,7 @@ import {
 } from "mongoose"
 import { ContactDocument } from "./Contact"
 
-export interface BroadcastSchema extends Document {
+export interface BroadcastSchema {
   message: string
   totalRequested: number
   totalQueued: number
@@ -24,6 +24,7 @@ export interface BroadcastSchema extends Document {
 
 export interface BroadcastDocument
   extends BroadcastSchema,
+    Document,
     SchemaTimestampsConfig {
   tags: Types.Array<string>
   contacts: Types.Array<PopulatedDoc<ContactDocument>>

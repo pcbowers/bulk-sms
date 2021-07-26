@@ -1,7 +1,11 @@
 import nextConnect from "next-connect"
-import { withSession } from "../../lib/export"
+import {
+  ExtendedRequest,
+  ExtendedResponse,
+  withSession
+} from "../../lib/export"
 
-const handler = nextConnect()
+const handler = nextConnect<ExtendedRequest, ExtendedResponse>()
 handler.use(withSession)
 
 handler.get(async (req, res) => {

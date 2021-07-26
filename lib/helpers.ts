@@ -323,18 +323,64 @@ export const getDocsWithAny = curry(
   }
 )
 
+// GET Helpers for Pagination
+
+export const generateSortQuery = (sortFields: string[] = []) => {
+  const sortQuery: [string, number][] = sortFields.map((field) => {
+    if (field.substring(0, 1) === "-") return [field.substring(1), -1]
+    return [field, 1]
+  })
+
+  if (sortQuery.every((field) => field[0] !== "_id")) sortQuery.push(["_id", 1])
+
+  return sortQuery
+}
+
+export const generateCursor = (
+  nextDocument: any,
+  sortQuery: [string, number][]
+) => {
+  return {
+    $or: sortQuery.map((sortParam, index) => {
+      const [field, ascending] = sortParam
+      const comparisonOp = ascending === 1 ? "$gt" : "$lt"
+      const prevSortQuery = sortQuery
+        .slice(0, index)
+        .reduce((acc, prevSortParam) => {
+          const [prevField, ,] = prevSortParam
+          return {
+            ...acc,
+            [prevField]: {
+              $eq: nextDocument[prevField]
+            }
+          }
+        }, {})
+
+      return {
+        ...prevSortQuery,
+        [field]: {
+          [comparisonOp]: nextDocument[field]
+        }
+      }
+    })
+  }
+}
+
 // get multiple documents by query and paginate
 export const getDocsByQueryPaginate = curry(
   async (
     Model: BaseModel,
     filterQuery: BaseFilterQuery,
     cursor: string,
-    limit: number
+    limit: number,
+    sortFields: string[]
   ) => {
     cursor = cursor || ""
     limit = limit || MAX_DB_OPERATIONS.value
 
-    let docQuery = getDocsByQuery(Model, filterQuery)
+    const sortQuery = generateSortQuery(sortFields)
+
+    let docQuery = getDocsByQuery(Model, filterQuery).sort(sortQuery)
 
     limit = Math.ceil(limit)
     if (limit > MAX_DB_OPERATIONS.value || limit <= 0)
@@ -344,22 +390,25 @@ export const getDocsByQueryPaginate = curry(
 
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
-      docQuery = docQuery.where({ _id: { $lt: decryptedCursor } })
+      docQuery = docQuery.where(decryptedCursor)
     }
 
-    const data = await docQuery
-      .sort({ _id: -1 })
-      .limit(limit + 1)
-      .exec()
+    const data = await docQuery.limit(limit + 1).exec()
 
     const hasMore = data.length > limit
-    if (hasMore) data.pop()
+    let nextCursor = cursor
 
-    const nextCursor = hasMore ? encrypt(data[data.length - 1]._id) : cursor
+    if (hasMore) {
+      data.pop()
+      const nextDocument = data[data.length - 1]
+      nextCursor = encrypt(generateCursor(nextDocument, sortQuery))
+    }
 
     return { data, hasMore, limit, cursor: nextCursor }
   }
 )
+
+export const getDocsPaginate = getDocsByQueryPaginate(__, {})
 
 // get multiple documents by tags and paginate
 export const getDocsWithAllPaginate = curry(
@@ -368,13 +417,15 @@ export const getDocsWithAllPaginate = curry(
     field: string,
     values: string[],
     cursor: string,
-    limit: number
+    limit: number,
+    sortFields: string[]
   ) => {
     return await getDocsByQueryPaginate(
       Model,
       fieldHasAllQuery(field, values),
       cursor,
-      limit
+      limit,
+      sortFields
     )
   }
 )
@@ -386,13 +437,15 @@ export const getDocsWithAnyPaginate = curry(
     field: string,
     values: string[],
     cursor: string,
-    limit: number
+    limit: number,
+    sortFields: string[]
   ) => {
     return await getDocsByQueryPaginate(
       Model,
       fieldHasAnyQuery(field, values),
       cursor,
-      limit
+      limit,
+      sortFields
     )
   }
 )
@@ -401,15 +454,15 @@ export const getDocsWithAnyPaginate = curry(
 
 // get a field based on a query and path
 export const getField = curry(
-  async (query: BaseQuerySingle, fieldPath: string) => {
-    return getDeepNestedValue(fieldPath, await query.exec())
+  async (docQuery: BaseQuerySingle, fieldPath: string) => {
+    return getDeepNestedValue(fieldPath, await docQuery.exec())
   }
 )
 
 // get multiple fields based on a query and path
 export const getFields = curry(
-  async (query: BaseQueryMultiple, fieldPath: string) => {
-    const data = await query.exec()
+  async (docQuery: BaseQueryMultiple, fieldPath: string) => {
+    const data = await docQuery.exec()
     return data.map((doc) => getDeepNestedValue(fieldPath, doc))
   }
 )

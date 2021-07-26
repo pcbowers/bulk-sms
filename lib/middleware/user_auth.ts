@@ -1,14 +1,9 @@
-import { NextApiRequest, NextApiResponse } from "next"
 import { Middleware } from "next-connect"
-import { Session } from "next-iron-session"
-
-interface ExtendedRequest extends NextApiRequest {
-  session: Session
-}
+import { ExtendedRequest, ExtendedResponse } from "../export"
 
 export const withUserAuthentication: Middleware<
   ExtendedRequest,
-  NextApiResponse
+  ExtendedResponse
 > = async (req, res, next) => {
   const user = req.session.get("user")
 

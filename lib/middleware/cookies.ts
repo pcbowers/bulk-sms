@@ -1,15 +1,6 @@
 import { serialize } from "cookie"
-import { NextApiRequest, NextApiResponse } from "next"
 import { Middleware } from "next-connect"
-
-interface CookieOptions {
-  expires?: Date
-  maxAge?: number
-}
-
-interface ExtendedResponse extends NextApiResponse {
-  cookie(name: string, value: string, options?: CookieOptions): void
-}
+import { CookieOptions, ExtendedRequest, ExtendedResponse } from "../export"
 
 const createCookie = (
   res: ExtendedResponse,
@@ -28,11 +19,9 @@ const createCookie = (
   res.setHeader("Set-Cookie", serialize(name, String(stringValue), options))
 }
 
-export const withCookies: Middleware<NextApiRequest, ExtendedResponse> = async (
-  req,
-  res,
-  next
-) => {
-  res.cookie = (name, value, options) => createCookie(res, name, value, options)
-  next()
-}
+export const withCookies: Middleware<ExtendedRequest, ExtendedResponse> =
+  async (req, res, next) => {
+    res.cookie = (name, value, options) =>
+      createCookie(res, name, value, options)
+    next()
+  }

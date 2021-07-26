@@ -1,3 +1,5 @@
+import { NextApiRequest, NextApiResponse } from "next"
+import { Session } from "next-iron-session"
 import {
   createDoc,
   createDocs,
@@ -7,13 +9,27 @@ import {
   getDocsWithAllPaginate,
   getDocsWithAnyPaginate
 } from "./helpers"
-import { Contact } from "./models/Contact"
+import { Contact, ContactDocument, ContactSchema } from "./models/Contact"
+
+//interfaces
+export interface ExtendedRequest extends NextApiRequest {
+  session: Session
+}
+
+export interface CookieOptions {
+  expires?: Date
+  maxAge?: number
+}
+
+export interface ExtendedResponse extends NextApiResponse {
+  cookie(name: string, value: string, options?: CookieOptions): void
+}
 
 // middlewares
 export { MAX_DB_OPERATIONS } from "./helpers"
 export { withCookies } from "./middleware/cookies"
 export { withDatabase } from "./middleware/database"
-export { withMethod } from "./middleware/method"
+export { withQueryArray } from "./middleware/query_array"
 export { withSession } from "./middleware/session"
 export { withTwilioAuthentication } from "./middleware/twilio_auth"
 export { withUserAuthentication } from "./middleware/user_auth"
@@ -37,20 +53,25 @@ export {
 } from "./twilio"
 // database functions
 
-export const contact = {
-  findByAnyTag: getDocsWithAnyPaginate(Contact, "tags"),
-  findByAllTags: getDocsWithAllPaginate(Contact, "tags"),
-  findByAnyId: getDocsWithAnyPaginate(Contact, "_id"),
+interface ContactObject {
+  findByAny: any
+  findByAll: any
+  findById: any
+  findByValue: any
+  findAll: any
+  findByQuery: any
+  create: {
+    one: (schema: ContactSchema) => Promise<ContactDocument>
+    many: any
+  }
+}
+
+export const contact: ContactObject = {
+  findByAny: getDocsWithAnyPaginate(Contact),
+  findByAll: getDocsWithAllPaginate(Contact),
   findById: getDoc(Contact),
+  findByValue: getDocByValue(Contact),
   findAll: getDocsByQueryPaginate(Contact, {}),
-  findByTwilioBindingId: getDocByValue(Contact, "twilioBindingId"),
-  findByAnyTwilioBindingId: getDocsWithAnyPaginate(Contact, "twilioBindingId"),
-  findByTwilioIdentity: getDocByValue(Contact, "twilioIdentity"),
-  findByAnyTwilioIdentity: getDocsWithAnyPaginate(Contact, "twilioIdentity"),
-  findByPhoneNumber: getDocByValue(Contact, "phoneNumber"),
-  findByAnyPhoneNumber: getDocsWithAnyPaginate(Contact, "phoneNumber"),
-  findByEmail: getDocByValue(Contact, "email"),
-  findByAnyEmail: getDocsWithAnyPaginate(Contact, "email"),
   findByQuery: getDocsByQueryPaginate(Contact),
   create: {
     one: createDoc(Contact),

@@ -1,13 +1,17 @@
 import nextConnect from "next-connect"
-import { withSession } from "../../lib/export"
+import {
+  ExtendedRequest,
+  ExtendedResponse,
+  withSession
+} from "../../lib/export"
 const { OAuth2Client } = require("google-auth-library")
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID_2)
 
-const handler = nextConnect()
+const handler = nextConnect<ExtendedRequest, ExtendedResponse>()
 handler.use(withSession)
 
-async function getUserData(req) {
+async function getUserData(req: ExtendedRequest) {
   if (
     !req.cookies.g_csrf_token ||
     !req.body.g_csrf_token ||

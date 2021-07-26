@@ -1,10 +1,10 @@
-import { NextApiRequest, NextApiResponse } from "next"
 import { Middleware } from "next-connect"
 import twilio from "twilio"
+import { ExtendedRequest, ExtendedResponse } from "../export"
 
 export const withTwilioAuthentication: Middleware<
-  NextApiRequest,
-  NextApiResponse
+  ExtendedRequest,
+  ExtendedResponse
 > = async (req, res, next) => {
   const validation = await twilio.validateRequest(
     process.env.TWILIO_AUTH_TOKEN || "",

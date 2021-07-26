@@ -8,18 +8,22 @@ import {
   Types
 } from "mongoose"
 
-export interface ContactSchema extends Document {
-  phoneNumber: string
+export interface ContactSchema {
+  phoneNumber?: string
   name?: string
   email?: string
-  admin: boolean
-  twilioBindingId: string
-  twilioIdentity: string
+  admin?: boolean
+  twilioBindingId?: string
+  twilioIdentity?: string
   tags?: string[]
 }
 
-export interface ContactDocument extends ContactSchema, SchemaTimestampsConfig {
+export interface ContactDocument
+  extends ContactSchema,
+    Document,
+    SchemaTimestampsConfig {
   tags: Types.Array<string>
+  admin: boolean
   name: string
 }
 
@@ -28,7 +32,7 @@ const contactSchema = new Schema<ContactDocument>(
     phoneNumber: {
       type: String,
       unique: true,
-      required: [true, "please specify a phone number"]
+      sparse: true
     },
     name: {
       type: String,
@@ -44,14 +48,10 @@ const contactSchema = new Schema<ContactDocument>(
       default: false
     },
     twilioBindingId: {
-      type: String,
-      unique: true,
-      required: [true, "please specify a twilio binding id"]
+      type: String
     },
     twilioIdentity: {
-      type: String,
-      unique: true,
-      required: [true, "please specify a twilio identity"]
+      type: String
     },
     tags: [
       {

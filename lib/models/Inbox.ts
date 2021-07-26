@@ -8,14 +8,17 @@ import {
   Types
 } from "mongoose"
 
-export interface InboxSchema extends Document {
+export interface InboxSchema {
   name: string
   description?: string
   unreadCount?: number
   messages: string[]
 }
 
-export interface InboxDocument extends InboxSchema, SchemaTimestampsConfig {
+export interface InboxDocument
+  extends InboxSchema,
+    Document,
+    SchemaTimestampsConfig {
   description: string
   unreadCount: number
   messages: Types.Array<string>

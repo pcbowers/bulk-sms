@@ -36,7 +36,7 @@ interface StepDocument extends StepSchema {
   tasks: Types.Array<ChosenTaskDocument>
 }
 
-export interface FlowSchema extends Document {
+export interface FlowSchema {
   name: string
   description?: string
   adminOnly?: boolean
@@ -44,7 +44,10 @@ export interface FlowSchema extends Document {
   steps: StepSchema[]
 }
 
-export interface FlowDocument extends FlowSchema, SchemaTimestampsConfig {
+export interface FlowDocument
+  extends FlowSchema,
+    Document,
+    SchemaTimestampsConfig {
   description: string
   adminOnly: boolean
   sortOrder: number
