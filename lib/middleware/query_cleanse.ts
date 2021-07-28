@@ -2,7 +2,7 @@ import { NextApiRequest } from "next"
 import { Middleware } from "next-connect"
 import { ExtendedResponse } from "../export"
 
-export const withQueryArray: Middleware<NextApiRequest, ExtendedResponse> =
+export const withQueryCleanse: Middleware<NextApiRequest, ExtendedResponse> =
   async (req, res, next) => {
     const queryValues = Object.keys(req.query).map((key: string) => {
       const parameter = req.query[key]

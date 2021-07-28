@@ -4,12 +4,9 @@ import {
   createDoc,
   createDocs,
   getDoc,
-  getDocByValue,
-  getDocsByQueryPaginate,
-  getDocsWithAllPaginate,
-  getDocsWithAnyPaginate
+  getDocsByBuiltQueryPaginate
 } from "./helpers"
-import { Contact, ContactDocument, ContactSchema } from "./models/Contact"
+import { Contact } from "./models/Contact"
 
 //interfaces
 export interface ExtendedRequest extends NextApiRequest {
@@ -29,7 +26,7 @@ export interface ExtendedResponse extends NextApiResponse {
 export { MAX_DB_OPERATIONS } from "./helpers"
 export { withCookies } from "./middleware/cookies"
 export { withDatabase } from "./middleware/database"
-export { withQueryArray } from "./middleware/query_array"
+export { withQueryCleanse } from "./middleware/query_cleanse"
 export { withSession } from "./middleware/session"
 export { withTwilioAuthentication } from "./middleware/twilio_auth"
 export { withUserAuthentication } from "./middleware/user_auth"
@@ -51,28 +48,11 @@ export {
   updateBinding,
   updateBindings
 } from "./twilio"
+
 // database functions
-
-interface ContactObject {
-  findByAny: any
-  findByAll: any
-  findById: any
-  findByValue: any
-  findAll: any
-  findByQuery: any
-  create: {
-    one: (schema: ContactSchema) => Promise<ContactDocument>
-    many: any
-  }
-}
-
-export const contact: ContactObject = {
-  findByAny: getDocsWithAnyPaginate(Contact),
-  findByAll: getDocsWithAllPaginate(Contact),
+export const contact = {
   findById: getDoc(Contact),
-  findByValue: getDocByValue(Contact),
-  findAll: getDocsByQueryPaginate(Contact, {}),
-  findByQuery: getDocsByQueryPaginate(Contact),
+  findByQuery: getDocsByBuiltQueryPaginate(Contact),
   create: {
     one: createDoc(Contact),
     many: createDocs(Contact)
