@@ -327,6 +327,10 @@ export const getDocsByQueryPaginate = curry(
     cursor = cursor || ""
     limit = limit || MAX_DB_OPERATIONS.value
 
+    const total = await getDocsCountByQuery(Model, filterQuery).exec()
+    // const totalPages = Math.ceil(total / limit)
+    // let currentPage = 1
+
     const sortQuery = generateSortQuery(sortFields)
 
     let docQuery = getDocsByQuery(Model, filterQuery).sort(sortQuery)
@@ -340,6 +344,15 @@ export const getDocsByQueryPaginate = curry(
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
       docQuery = docQuery.where(decryptedCursor)
+
+      // const amountLeft = await getDocsCountByQuery(Model, filterQuery)
+      //   .where(decryptedCursor)
+      //   .exec()
+
+      // currentPage =
+      //   total - amountLeft < limit
+      //     ? totalPages
+      //     : totalPages - Math.ceil(amountLeft / limit)
     }
 
     const data = await docQuery.limit(limit + 1).exec()
@@ -353,7 +366,15 @@ export const getDocsByQueryPaginate = curry(
       nextCursor = encrypt(generateCursor(nextDocument, sortQuery))
     }
 
-    return { data, hasMore, limit, cursor: nextCursor }
+    return {
+      data,
+      total,
+      // totalPages,
+      // currentPage,
+      hasMore,
+      limit,
+      cursor: nextCursor
+    }
   }
 )
 

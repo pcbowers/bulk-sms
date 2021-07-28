@@ -3,6 +3,7 @@ import {
   contact,
   createBinding,
   createBindings,
+  DefaultParams,
   ExtendedRequest,
   ExtendedResponse,
   withDatabase,
@@ -11,47 +12,29 @@ import {
   withUserAuthentication
 } from "../../lib/export"
 
-const handler = nextConnect<ExtendedRequest, ExtendedResponse>()
+interface ExtendedParams {
+  cursor: string
+  union: boolean
+  limit: number
+  sort: string[]
+}
+
+interface Request extends ExtendedRequest {
+  query: ExtendedParams & DefaultParams
+}
+
+const handler = nextConnect<Request, ExtendedResponse>()
 handler.use(withSession)
 handler.use(withUserAuthentication)
 handler.use(withDatabase)
-handler.use(withQueryCleanse)
-
-interface UrlParamInput {
-  union?: string | string[]
-  limit?: string | string[]
-  sort?: string | string[]
-  cursor?: string | string[]
-  filters?: { [key: string]: string | string[] }
-}
-
-interface UrlParamOutput {
-  union?: boolean
-  limit?: number
-  sort?: string[]
-  cursor?: string
-  filters?: { [key: string]: string | string[] }
-}
-
-const cleanseQuery = (query: UrlParamInput) => {
-  const { union, limit, sort, cursor, ...filters } = query
-
-  const cleansedQuery: UrlParamOutput = {
-    ...filters
-  }
-
-  if (union)
-    cleansedQuery.union =
-      union === "true" || (Array.isArray(union) && union.includes("true"))
-
-  if (limit) cleansedQuery.limit = Number(limit)
-
-  if (sort) cleansedQuery.sort = typeof sort === "string" ? [sort] : sort
-
-  if (cursor) cleansedQuery.cursor = String(cursor)
-
-  return cleansedQuery
-}
+handler.use(
+  withQueryCleanse<ExtendedParams>({
+    cursor: "string",
+    union: "boolean",
+    limit: "integer",
+    sort: "string[]"
+  })
+)
 
 handler.get(async (req, res) => {
   let data
@@ -62,7 +45,7 @@ handler.get(async (req, res) => {
     limit = 100,
     sort = ["-_id"],
     ...filters
-  } = cleanseQuery(req.query)
+  } = req.query
 
   try {
     data = await contact.findByQuery(filters, union, cursor, limit, sort)

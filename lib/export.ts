@@ -9,6 +9,10 @@ import {
 import { Contact } from "./models/Contact"
 
 //interfaces
+export interface DefaultParams {
+  [key: string]: string | string[]
+}
+
 export interface ExtendedRequest extends NextApiRequest {
   session: Session
 }
