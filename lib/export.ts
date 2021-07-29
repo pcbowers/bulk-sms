@@ -3,10 +3,15 @@ import { Session } from "next-iron-session"
 import {
   createDoc,
   createDocs,
-  getDoc,
-  getDocsByBuiltQueryPaginate
+  deleteDocById,
+  deleteDocsByBuiltQuery,
+  getDocById,
+  getDocsByBuiltQueryPaginate,
+  getDocsByQueryPaginate,
+  updateDocById,
+  updateDocsByBuiltQuery
 } from "./helpers"
-import { Contact } from "./models/Contact"
+import { Contact, ContactDocument, ContactSchema } from "./models/Contact"
 
 //interfaces
 export interface DefaultParams {
@@ -27,7 +32,6 @@ export interface ExtendedResponse extends NextApiResponse {
 }
 
 // middlewares
-export { MAX_DB_OPERATIONS } from "./helpers"
 export { withCookies } from "./middleware/cookies"
 export { withDatabase } from "./middleware/database"
 export { withQueryCleanse } from "./middleware/query_cleanse"
@@ -55,10 +59,21 @@ export {
 
 // database functions
 export const contact = {
-  findById: getDoc(Contact),
-  findByQuery: getDocsByBuiltQueryPaginate(Contact),
+  get: {
+    one: getDocById<ContactDocument>(Contact),
+    many: getDocsByBuiltQueryPaginate<ContactDocument>(Contact),
+    all: getDocsByQueryPaginate<ContactDocument>(Contact)({})
+  },
+  update: {
+    one: updateDocById<ContactDocument>(Contact),
+    many: updateDocsByBuiltQuery<ContactDocument>(Contact)
+  },
+  delete: {
+    one: deleteDocById<ContactDocument>(Contact),
+    many: deleteDocsByBuiltQuery<ContactDocument>(Contact)
+  },
   create: {
-    one: createDoc(Contact),
-    many: createDocs(Contact)
+    one: createDoc<ContactDocument, ContactSchema>(Contact),
+    many: createDocs<ContactDocument, ContactSchema>(Contact)
   }
 }

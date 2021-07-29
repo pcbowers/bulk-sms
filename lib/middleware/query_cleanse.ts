@@ -19,10 +19,7 @@ const castType = (newType: string, value: string | string[], key: string) => {
         throw Error(`${key} must be a boolean`)
       return value === "true"
     case "boolean[]":
-      if (!Array.isArray(value))
-        throw Error(
-          `${key} must be an array (either assign multiple times or add commas)`
-        )
+      if (!Array.isArray(value)) value = [value]
       if (value.some((val) => !["true", "false", "1", "0", ""].includes(val)))
         throw Error(`${key} must contain boolean values`)
       return value.map((val) => val === "true")
@@ -32,10 +29,7 @@ const castType = (newType: string, value: string | string[], key: string) => {
         throw Error(`${key} must be an integer`)
       return parseInt(value)
     case "integer[]":
-      if (!Array.isArray(value))
-        throw Error(
-          `${key} must be an array (either assign multiple times or add commas)`
-        )
+      if (!Array.isArray(value)) value = [value]
       if (value.some((val) => !Number.isInteger(Number(val))))
         throw Error(`${key} must contain integer values`)
       return value.map((val) => parseInt(val))
@@ -44,10 +38,7 @@ const castType = (newType: string, value: string | string[], key: string) => {
       if (isNaN(Number(value))) throw Error(`${key} must be a number`)
       return parseFloat(value)
     case "number[]":
-      if (!Array.isArray(value))
-        throw Error(
-          `${key} must be an array (either assign multiple times or add commas)`
-        )
+      if (!Array.isArray(value)) value = [value]
       if (value.some((val) => isNaN(Number(val))))
         throw Error(`${key} must contain number values`)
       return value.map((val) => parseFloat(val))
@@ -55,10 +46,7 @@ const castType = (newType: string, value: string | string[], key: string) => {
       if (typeof value !== "string") throw Error(`${key} must be a string`)
       return value
     case "string[]":
-      if (!Array.isArray(value))
-        throw Error(
-          `${key} must be an array (either assign multiple times or add commas)`
-        )
+      if (!Array.isArray(value)) value = [value]
       return value
     case "object":
       if (typeof value !== "string") throw Error(`${key} must be a string`)
@@ -68,10 +56,7 @@ const castType = (newType: string, value: string | string[], key: string) => {
         throw Error(`${key} must be valid JSON`)
       }
     case "object[]":
-      if (!Array.isArray(value))
-        throw Error(
-          `${key} must be an array (either assign multiple times or add commas)`
-        )
+      if (!Array.isArray(value)) value = [value]
       try {
         return value.map((val) => JSON.parse(val))
       } catch (error) {

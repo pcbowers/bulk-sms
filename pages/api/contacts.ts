@@ -48,7 +48,13 @@ handler.get(async (req, res) => {
   } = req.query
 
   try {
-    data = await contact.findByQuery(filters, union, cursor, limit, sort)
+    data = await contact.get.many(filters)({
+      union,
+      cursor,
+      limit,
+      sortFields: sort,
+      maxOperations: 50
+    })
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })

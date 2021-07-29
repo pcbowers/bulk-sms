@@ -1,56 +1,72 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
-import { FilterQuery, Model, Query } from "mongoose"
-import { curry, __ } from "ramda"
-import { BroadcastDocument, BroadcastSchema } from "./models/Broadcast"
-import { ContactDocument, ContactSchema } from "./models/Contact"
-import { FlowDocument, FlowSchema } from "./models/Flow"
-import { InboxDocument, InboxSchema } from "./models/Inbox"
-import { TaskDocument, TaskSchema } from "./models/Task"
+import {
+  Document as MongooseDocument,
+  EnforceDocument,
+  FilterQuery,
+  Model,
+  Query,
+  UpdateQuery,
+  UpdateWriteOpResult
+} from "mongoose"
 
-export let MAX_DB_OPERATIONS = {
-  set dangerouslyChangeValue(newValue: number) {
-    this.value = newValue
-  },
-  resetValue() {
-    this.value = 100
-  },
-  value: 100
-}
-
-// UNION TYPES
-
-export type SchemaUnion =
-  | FlowSchema
-  | TaskSchema
-  | BroadcastSchema
-  | ContactSchema
-  | InboxSchema
-
-export type DocumentUnion =
-  | Model<FlowDocument>
-  | Model<TaskDocument>
-  | Model<BroadcastDocument>
-  | Model<ContactDocument>
-  | Model<InboxDocument>
-
-// GENERIC FUNCTIONS
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Generic Functions:
+ * - encrypt()
+ * - decrypt()
+ * - pluralizer()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
 
 const algorithm = "aes-256-ctr"
 const secretKey = "1c227d77-a6bf-40de-ac68-3cda668c"
 const iv = randomBytes(16)
 
-const encrypt = (obj: Object) => {
+interface EncryptOptions {
+  separator?: string
+}
+
+/**
+ * encrypt any given object
+ * @param obj any object you want to encrypt
+ * @param options.separator separator between iv and encryption. default: "_"
+ * @returns string with encrypted obj
+ */
+const encrypt = (obj: any, options: EncryptOptions = {}) => {
+  // destructure options
+  const { separator = "_" } = options
+
   const cipher = createCipheriv(algorithm, secretKey, iv)
+
   const encrypted = Buffer.concat([
     cipher.update(JSON.stringify(obj)),
     cipher.final()
   ])
 
-  return `${iv.toString("hex")}_${encrypted.toString("hex")}`
+  return `${iv.toString("hex")}${separator}${encrypted.toString("hex")}`
 }
 
-const decrypt = (hash: string) => {
-  const [iv, content] = hash.split("_")
+interface DecryptOptions {
+  separator?: string
+}
+
+/**
+ * Decrypts any encrypted object from the encrypt function
+ * @param hash an encrypted object
+ * @param options.separator separator between iv and encryption within hash. default: "_"
+ * @returns decrypted object
+ */
+const decrypt = (hash: string, options: DecryptOptions = {}) => {
+  // destructure options
+  const { separator = "_" } = options
+
+  // extract properties
+  const [iv, content] = hash.split(separator)
+
   const decipher = createDecipheriv(
     algorithm,
     secretKey,
@@ -62,11 +78,17 @@ const decrypt = (hash: string) => {
     decipher.final()
   ])
 
-  return JSON.parse(decrpyted.toString())
+  return JSON.parse(decrpyted.toString()) as any
 }
 
+/**
+ * Allows a single async function to be called on a list of items
+ * @param func an async function that accepts one element
+ * @returns an async function that accepts an array of values and passes each element to the above function
+ */
 export const pluralizer = (func: Function) => {
   return async (elements: Array<Object>) => {
+    // loop over elements and await all promise returns
     return await Promise.all(
       elements.map(async (element) => {
         return await func(element)
@@ -75,343 +97,744 @@ export const pluralizer = (func: Function) => {
   }
 }
 
-export const getDeepNestedValue = (
-  path: string | string[],
-  obj: any,
-  separator = "."
-) => {
-  const properties = Array.isArray(path) ? path : path.split(separator)
-  return properties.reduce((prev, curr) => prev && prev[curr], obj)
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Mongoose Generator Functions:
+ * -generateSortQuery()
+ * -generateCursor()
+ * -generateFilterQuery()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
+
+interface GenerateSortQueryOptions {
+  defaultDirection?: number
 }
 
-// MONGOOSE HELPER FUNCTIONS
+/**
+ * Generates a sort query based on the passed parameters
+ * @param sortFields a list of sort fields. + and - dictate ascending and descending respectively. Example: ["+name", "-_id"]
+ * @param options.defaultDirection default direction if + and - is not passed, either 0 or 1. default: 1
+ * @returns the generated sort query
+ */
+export const generateSortQuery = (
+  sortFields: string[] = [],
+  options: GenerateSortQueryOptions = {}
+): [string, number][] => {
+  // destructure options
+  const { defaultDirection = 1 } = options
 
-export const generateSortQuery = (sortFields: string[] = []) => {
   const sortQuery: [string, number][] = sortFields.map((field) => {
+    // if starts with -, descending
     if (field.substring(0, 1) === "-") return [field.substring(1), -1]
+
+    // if starts with +, ascending
+    if (field.substring(0, 1) === "+") return [field.substring(1), 1]
+
+    // default is ascending
     return [field, 1]
   })
 
-  if (sortQuery.every((field) => field[0] !== "_id")) sortQuery.push(["_id", 1])
+  // if _id is not included, add it, use defaultDirection
+  if (sortQuery.every((field) => field[0] !== "_id"))
+    sortQuery.push(["_id", defaultDirection])
 
   return sortQuery
 }
 
-export const generateCursor = (
-  nextDocument: any,
+/**
+ * Generates a cursor for pagination
+ * @param lastDocument the last document from the previous search query
+ * @param sortQuery a sort query generated by generateSortQuery()
+ * @returns a filter clause used as the next cursor
+ */
+export const generateCursor = <Document extends MongooseDocument>(
+  lastDocument: Document,
   sortQuery: [string, number][]
-) => {
+): FilterQuery<Document> => {
+  console.log(lastDocument.get("asdfweqr"), lastDocument)
+  // build or query to generate cursor
   return {
     $or: sortQuery.map((sortParam, index) => {
-      const [field, ascending] = sortParam
-      const comparisonOp = ascending === 1 ? "$gt" : "$lt"
+      // extract the field and direction from each sort parameter
+      const [field, direction] = sortParam
+
+      // check if the field exists
+      if (lastDocument.get(field) === undefined)
+        throw Error(`${field} does not exist on this document.`)
+
+      // set comparison operator based on sort direction
+      const comparisonOp = direction === 1 ? "$gt" : "$lt"
+
+      /*
+        This builds out the previous query.
+
+        Example: I am sorting by +name, -email, +_id
+        1. As I loop through, I start with +name. All I need to check
+        for here is if it is greater than name
+        2. If the name is equal to current, I also need to check if
+        it is less than email. Therefore, the previous query should include
+        equal to name
+        3. If the name and email are equal, then I need greater than _id.
+        This requires me to check the equality of both name and email.
+
+        As you can see, the prev query slowly increases the more sort params
+        there are. Thus, the previous query must be built as below.
+      */
       const prevSortQuery = sortQuery
+        // slice array to get everything before current index
         .slice(0, index)
         .reduce((acc, prevSortParam) => {
+          // extract the name of the previous field
           const [prevField, ,] = prevSortParam
+          // return the overalll query with value of the previous field
           return {
             ...acc,
             [prevField]: {
-              $eq: nextDocument[prevField]
+              $eq: lastDocument.get(prevField)
             }
           }
         }, {})
 
+      // return the overall query with combination of equality sort query and comparison query
       return {
         ...prevSortQuery,
         [field]: {
-          [comparisonOp]: nextDocument[field]
+          [comparisonOp]: lastDocument.get(field)
         }
       }
     })
-  }
+  } as object
 }
 
-const generateFilterQuery = curry(
-  (filters: { [key: string]: any }, union: boolean = true): BaseFilterQuery => {
-    const newFilters = Object.keys(filters).reduce((acc, filter) => {
-      const filterValue = filters[filter]
-      let filterName = filter
-      let operator = "$eq"
+interface GenerateFilterQueryOptions {
+  union?: boolean
+}
 
-      if (filter.includes("[")) {
-        filterName = filter.split("[")[0]
-        operator = "$" + filter.split("[")[1]
-        if (filter.includes("]")) operator = operator.slice(0, -1)
-      }
+/**
+ * Generates a filter query based on the filters and options passed
+ * @param filters an object containing filters with optional operators. Example: { _id[in]: ["id1", "id2"]}
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @returns a filter query based on the filters
+ */
+const generateFilterQuery = <Document extends MongooseDocument>(
+  filters: { [key: string]: any },
+  options: GenerateFilterQueryOptions = {}
+): FilterQuery<Document> => {
+  // destructure options
+  const { union = false } = options
 
-      if (!acc[filterName]) acc[filterName] = {}
-      acc[filterName][operator] = filterValue
+  const newFilters = Object.keys(filters).reduce((acc, filter) => {
+    // get the value of the filter
+    const filterValue = filters[filter]
+    // get the name of the filter
+    let filterName = filter
+    // set the base operator
+    let operator = "$eq"
 
-      return acc
-    }, [] as any)
+    // if a different operator is desired, extract it and reset the filter name
+    if (filter.includes("[")) {
+      filterName = filter.split("[")[0]
+      operator = "$" + filter.split("[")[1]
+      if (filter.includes("]")) operator = operator.slice(0, -1)
+    }
 
-    const filterQuery = [
-      ...Object.keys(newFilters).map((key, index, array) => ({
-        [key]: newFilters[key]
-      }))
-    ]
+    // if the filter doesn't already exist, add it
+    if (!acc.hasOwnProperty(filterName)) acc[filterName] = {}
 
-    if (filterQuery.length > 1) return { [union ? "$or" : "$and"]: filterQuery }
-    if (filterQuery.length === 1) return filterQuery[0]
-    return {}
+    // add operator and value to overall filter
+    acc[filterName][operator] = filterValue
+
+    return acc
+  }, {} as { [parameterName: string]: { [filterOperator: string]: string | string[] } })
+
+  // place each filter as a separate element in an array
+  const filterQuery = [
+    ...Object.keys(newFilters).map((key) => ({
+      [key]: newFilters[key]
+    }))
+  ]
+
+  // use union if there is more than one filter query
+  if (filterQuery.length > 1)
+    return { [union ? "$or" : "$and"]: filterQuery } as object
+  if (filterQuery.length === 1) return filterQuery[0] as object
+  return {}
+}
+
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Create Document Wrappers:
+ * - createDoc()
+ * - createDocs()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
+
+/**
+ * Creates a single document
+ * @param Model the document model to be created (curried)
+ * @param schema the data for the document to be created
+ * @returns the created document
+ */
+export const createDoc =
+  <Document extends MongooseDocument, Schema>(Model: Model<Document>) =>
+  async (schema: Schema): Promise<EnforceDocument<Document, {}>> => {
+    return await Model.create(schema)
   }
-)
 
-// base mongoose types
+interface CreateDocsOptions {
+  maxOperations?: number
+}
 
-type BaseModel = DocumentUnion
-type BaseSchema = SchemaUnion
-type BaseSchemas = SchemaUnion[]
-type BaseFilterQuery = FilterQuery<DocumentUnion>
-type BaseQuerySingle = Query<DocumentUnion, DocumentUnion>
-type BaseQueryMultiple = Query<DocumentUnion[], DocumentUnion>
+/**
+ * Creates multiple documents
+ * @param Model the document model to be created (curried)
+ * @param schemas the data for the documents to be created
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @returns the created documents
+ */
+export const createDocs =
+  <Document extends MongooseDocument, Schema>(Model: Model<Document>) =>
+  async (
+    schemas: Schema[],
+    options: CreateDocsOptions = {}
+  ): Promise<EnforceDocument<Document, {}>[]> => {
+    // destructure options
+    const { maxOperations = Infinity } = options
 
-// CREATE calls
+    const count = maxOperations === Infinity || schemas.length
+    if (count !== true && count > maxOperations)
+      throw Error(`You can only create up to ${maxOperations} at a time.`)
 
-// create a single document
-export const createDoc = curry(async (Model: BaseModel, schema: BaseSchema) => {
-  return await Model.create(schema)
-})
-
-// create multiple documents
-export const createDocs = curry(
-  async (Model: BaseModel, schemas: BaseSchemas) => {
-    const count = schemas.length
-    if (count > MAX_DB_OPERATIONS.value)
-      throw Error(
-        `You can only create up to ${MAX_DB_OPERATIONS.value} at a time.`
-      )
     return await Model.insertMany(schemas)
   }
-)
 
-// UPDATE calls
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Update Document Wrappers:
+ * - updateDocById()
+ * - updateDocsByQuery()
+ * - updateDocsByBuiltQuery()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
 
-// update a single document
-export const updateDoc = curry(
-  async (Model: BaseModel, id: string, schema: BaseSchema) => {
-    return await (Model as any).findByIdAndUpdate(id, schema, {
+interface UpdateDocByIdOptions {
+  overwrite?: boolean
+}
+
+/**
+ * Updates a single document by ID
+ * @param Model the document model to be updated (curried)
+ * @param id the id of the document to update
+ * @param schema the schema with the updates
+ * @param options.overwrite whether to overwrite the whole document or just the parts included. default: false
+ * @returns the updated document or null if it is not found
+ */
+export const updateDocById =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  async (
+    id: string,
+    schema: UpdateQuery<Document>,
+    options: UpdateDocByIdOptions = {}
+  ): Promise<EnforceDocument<Document, {}> | null> => {
+    // destructure options
+    const { overwrite = false } = options
+
+    return await Model.findByIdAndUpdate(id, schema, {
+      overwrite: overwrite,
       returnOriginal: false,
       omitUndefined: true
     })
   }
-)
-// update multiple documents by query
-export const updateDocsByQuery = curry(
+
+interface UpdateDocsByQueryOptions {
+  maxOperations?: number
+  overwrite?: boolean
+}
+
+/**
+ * Updates multiple documents by Query
+ * @param Model the document model to be updated (curried)
+ * @param filterQuery a filter query to select the documents to be udpated (curried)
+ * @param schema the schema with the updates
+ * @param options.maxOperationsthe max operations before an error is thrown. default: Infinity
+ * @param options.overwrite whether to overwrite the whole document or just the parts included. default: false
+ * @returns an object containing ok, n selected, and nModified
+ */
+export const updateDocsByQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterQuery: FilterQuery<Document>) =>
   async (
-    Model: BaseModel,
-    filterQuery: BaseFilterQuery,
-    schemas: BaseSchemas
-  ) => {
-    const count = await getDocsCountByQuery(Model, filterQuery).exec()
-    if (count > MAX_DB_OPERATIONS.value)
-      throw Error(
-        `You can only update up to ${MAX_DB_OPERATIONS.value} at a time.`
-      )
-    return await Model.updateMany(filterQuery, schemas, {
+    schema: UpdateQuery<Document>,
+    options: UpdateDocsByQueryOptions = {}
+  ): Promise<UpdateWriteOpResult> => {
+    // destructure options
+    const { maxOperations = Infinity, overwrite = false } = options
+
+    const count =
+      maxOperations === Infinity ||
+      (await executeQuery<number, Document>(
+        getDocsCountByQuery<Document>(Model)(filterQuery)()
+      )())
+    if (count !== true && count > maxOperations)
+      throw Error(`You can only update up to ${maxOperations} at a time.`)
+
+    return await Model.updateMany(filterQuery, schema, {
+      overwrite: overwrite,
       returnOriginal: false,
       omitUndefined: true
     })
   }
-)
 
-// update all documents
-export const updateDocs = updateDocsByQuery(__, {})
+interface UpdateDocsByBuiltQueryOptions {
+  maxOperations?: number
+  union?: boolean
+  overwrite?: boolean
+}
 
-// update multiple documents by prebuilt query
-export const updateDocsByBuiltQuery = curry(
+/**
+ * Updates multiple documents by built Query
+ * @param Model the document model to be updated (curried)
+ * @param filterFields an object containing filters with optional operators (curried). Example: { _id[in]: ["id1", "id2"]}
+ * @param schema the schema with the updates
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @param options.overwrite whether to overwrite the whole document or just the parts included. default: false
+ * @returns an object containing ok, n selected, and nModified
+ */
+export const updateDocsByBuiltQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterFields: { [key: string]: any }) =>
   async (
-    Model: BaseModel,
-    filterFields: { [key: string]: any },
-    union: boolean,
-    schemas: BaseSchemas
-  ) => {
-    return await updateDocsByQuery(
-      Model,
-      generateFilterQuery(filterFields, union),
-      schemas
-    )
+    schema: UpdateQuery<Document>,
+    options: UpdateDocsByBuiltQueryOptions = {}
+  ): Promise<UpdateWriteOpResult> => {
+    // destructure options
+    const {
+      maxOperations = Infinity,
+      union = false,
+      overwrite = false
+    } = options
+
+    return await updateDocsByQuery<Document>(Model)(
+      generateFilterQuery(filterFields, { union })
+    )(schema, { maxOperations, overwrite })
   }
-)
 
-// DELETE Calls
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Delete Document Wrappers:
+ * - deleteDocById()
+ * - deleteDocsByQuery()
+ * - deleteDocsByBuiltQuery()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
 
-// delete a document
-export const deleteDoc = curry(async (Model: BaseModel, id: string) => {
-  return await Model.findByIdAndDelete(id)
-})
+/**
+ * Deletes a single document by ID
+ * @param Model the document model to be deleted (curried)
+ * @param id the id of the document to be deleted
+ * @returns the deleted document or null if not found
+ */
+export const deleteDocById =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  async (id: string): Promise<EnforceDocument<Document, {}> | null> => {
+    return await Model.findByIdAndDelete(id)
+  }
 
-// delete multiple documents by query
-export const deleteDocsByQuery = curry(
-  async (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    const count = await getDocsCountByQuery(Model, filterQuery).exec()
-    if (count > MAX_DB_OPERATIONS.value)
-      throw Error(
-        `You can only delete up to ${MAX_DB_OPERATIONS.value} at a time.`
-      )
+interface DeleteDocsByQueryOptions {
+  maxOperations?: number
+}
+
+/**
+ * Deletes multiple documents by Query
+ * @param Model the document model to be deleted (curried)
+ * @param filterQuery a filter query to select the documents to be deleted (curried)
+ * @param options.maxOperations the document model to be deleted (curried)
+ * @returns an object containing ok, n selected, and deleted count
+ */
+export const deleteDocsByQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterQuery: FilterQuery<Document>) =>
+  async (
+    options: DeleteDocsByQueryOptions = {}
+  ): Promise<{
+    ok?: number
+    n?: number
+    deletedCount?: number
+  }> => {
+    // destructure options
+    const { maxOperations = Infinity } = options
+
+    const count =
+      maxOperations === Infinity ||
+      (await executeQuery<number, Document>(
+        getDocsCountByQuery<Document>(Model)(filterQuery)()
+      )())
+    if (count !== true && count > maxOperations)
+      throw Error(`You can only delete up to ${maxOperations} at a time.`)
 
     return await Model.deleteMany(filterQuery as any)
   }
-)
 
-// delete all documents
-export const deleteDocs = deleteDocsByQuery(__, {})
+interface DeleteDocsByBuiltQueryOptions {
+  maxOperations?: number
+  union?: boolean
+}
 
-// delete multiple documents by prebuilt query
-export const deleteDocsByBuiltQuery = curry(
+/**
+ * Deletes multiple documents by Built Query
+ * @param Model the document model to be deleted (curried)
+ * @param filterFields an object containing filters with optional operators (curried). Example: { _id[in]: ["id1", "id2"]}
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @returns an object containing ok, n selected, and deleted count
+ */
+export const deleteDocsByBuiltQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterFields: { [key: string]: any }) =>
   async (
-    Model: BaseModel,
-    filterFields: { [key: string]: any },
-    union: boolean
-  ) => {
-    return await deleteDocsByQuery(
-      Model,
-      generateFilterQuery(filterFields, union)
-    )
+    options: DeleteDocsByBuiltQueryOptions = {}
+  ): Promise<{
+    ok?: number
+    n?: number
+    deletedCount?: number
+  }> => {
+    // destructure options
+    const { maxOperations = Infinity, union = false } = options
+
+    return await deleteDocsByQuery<Document>(Model)(
+      generateFilterQuery(filterFields, { union })
+    )({ maxOperations })
   }
-)
 
-// GET Calls
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Get Document Wrappers:
+ * - executeQuery()
+ * - getDocsCountByQuery()
+ * - getDocsCountByBuiltQuery()
+ * - getDocById()
+ * - getDocsByQuery()
+ * - getDocsByBuiltQuery()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
 
-// GET Document Calls
-
-// get a count of multiple documents by query
-export const getDocsCountByQuery = curry(
-  (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    return Model.countDocuments(filterQuery as any)
+/**
+ * A way to easily execute a document query
+ * @param docQuery A created mongoose query (curried)
+ * @returns The results of the query
+ */
+export const executeQuery =
+  <ResultType, Document extends MongooseDocument>(
+    docQuery: Query<ResultType, EnforceDocument<Document, {}>>
+  ) =>
+  async (): Promise<ResultType> => {
+    return await docQuery.exec()
   }
-)
 
-// get a count of all documents
-export const getDocsCount = getDocsCountByQuery(__, {})
-
-// get a document
-export const getDoc = curry((Model: BaseModel, id: string) => {
-  return Model.findById(id)
-})
-
-// get a single document by query
-export const getDocByQuery = curry(
-  (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    return Model.findOne(filterQuery)
+/**
+ * Counts multiple documents by Query
+ * @param Model the document model to be counted (curried)
+ * @param filterQuery a filter query to select the documents to be counted
+ * @returns a query that results in a number
+ */
+export const getDocsCountByQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterQuery: FilterQuery<Document>) =>
+  (): Query<number, EnforceDocument<Document, {}>> => {
+    return Model.countDocuments(filterQuery)
   }
-)
 
-// get multiple documents by query
-export const getDocsByQuery = curry(
-  (Model: BaseModel, filterQuery: BaseFilterQuery) => {
-    return (Model as any).find(filterQuery)
+interface GetDocsCountByBuiltQueryOptions {
+  union?: boolean
+}
+
+/**
+ * Counts multiple documents by Built Query
+ * @param Model the document model to be counted (curried)
+ * @param filterFields an object containing filters with optional operators (curried). Example: { _id[in]: ["id1", "id2"]}
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @returns a query that results in a number
+ */
+export const getDocsCountByBuiltQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterFields: { [key: string]: any }) =>
+  (
+    options: GetDocsCountByBuiltQueryOptions = {}
+  ): Query<number, EnforceDocument<Document, {}>> => {
+    // destructure options
+    const { union = false } = options
+
+    return Model.countDocuments(generateFilterQuery(filterFields, { union }))
   }
-)
 
-// get all documents
-export const getDocs = getDocsByQuery(__, {})
-
-// get multiple documents by tag
-export const getDocsByBuiltQuery = curry(
-  (Model: BaseModel, filterFields: { [key: string]: any }, union: boolean) => {
-    return getDocsByQuery(Model, generateFilterQuery(filterFields, union))
+/**
+ * Finds a single document by ID
+ * @param Model the document model to be found (curried)
+ * @param id the id of the document to be found
+ * @returns a query that results in a single document or null if not found
+ */
+export const getDocById =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (id: string): Query<Document | null, EnforceDocument<Document, {}>> => {
+    return Model.findById(id)
   }
-)
 
-// get multiple documents by query and paginate
-export const getDocsByQueryPaginate = curry(
+interface GetDocsByQueryOptions {
+  maxOperations?: number
+}
+
+/**
+ * Finds multiple documents by Query
+ * @param Model the document model to be found (curried)
+ * @param filterQuery a filter query to select the documents to be found (curried)
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @returns a function that will return a query that results in an array of documents (required due to async)
+ */
+export const getDocsByQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterQuery: FilterQuery<Document>) =>
   async (
-    Model: BaseModel,
-    filterQuery: BaseFilterQuery,
-    cursor: string,
-    limit: number,
-    sortFields: string[]
-  ) => {
-    cursor = cursor || ""
-    limit = limit || MAX_DB_OPERATIONS.value
+    options: GetDocsByQueryOptions = {}
+  ): Promise<() => Query<Document[], EnforceDocument<Document, {}>>> => {
+    // destructure options
+    const { maxOperations = Infinity } = options
 
-    const total = await getDocsCountByQuery(Model, filterQuery).exec()
-    // const totalPages = Math.ceil(total / limit)
-    // let currentPage = 1
+    const count =
+      maxOperations === Infinity ||
+      (await executeQuery<number, Document>(
+        getDocsCountByQuery<Document>(Model)(filterQuery)()
+      )())
+    if (count !== true && count > maxOperations)
+      throw Error(`You can only get up to ${maxOperations} at a time.`)
 
+    return function test() {
+      return Model.find(filterQuery)
+    }
+  }
+
+interface GetDocsByBuiltQueryOptions {
+  maxOperations?: number
+  union?: boolean
+}
+
+/**
+ *Finds multiple documents by Built Query
+ * @param Model the document model to be found (curried)
+ * @param filterFields an object containing filters with optional operators (curried). Example: { _id[in]: ["id1", "id2"]}
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @returns a function that will return a query that results in an array of documents (required due to async)
+ */
+export const getDocsByBuiltQuery =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterFields: { [key: string]: any }) =>
+  async (
+    options: GetDocsByBuiltQueryOptions = {}
+  ): Promise<() => Query<Document[], EnforceDocument<Document, {}>>> => {
+    // destructure options
+    const { maxOperations = Infinity, union = false } = options
+
+    const query = await getDocsByQuery<Document>(Model)(
+      generateFilterQuery<Document>(filterFields, { union })
+    )({ maxOperations })
+
+    return query
+  }
+
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Paginate Document Wrappers:
+ * - getDocsByQueryPaginate()
+ * - getDocsByBuiltQueryPaginate()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
+
+interface PaginationResults {
+  total: number
+  hasMore: boolean
+  limit: number
+  cursor: string
+}
+
+interface GetDocsByQueryPaginateOptions {
+  cursor?: string
+  limit?: number
+  sortFields?: string[]
+  maxOperations?: number
+}
+
+/**
+ * Finds multiple documents by Query and paginates them
+ * @param Model the document model to be found (curried)
+ * @param filterQuery a filter query to select the documents to be found (curried)
+ * @param options.cursor an encrypted string that allows one to select the next batch of documents if necessary. default: ""
+ * @param options.limit a limit to the number of documents per page. default: Infinity
+ * @param options.sortFields a list of sort fields. + and - dictate ascending and descending respectively. default: ["+_id"]
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @returns a list of documents with limit, cursor, and total information, and also whether or not there's more
+ */
+export const getDocsByQueryPaginate =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterQuery: FilterQuery<Document>) =>
+  async (
+    options: GetDocsByQueryPaginateOptions = {}
+  ): Promise<PaginationResults & { data: Document[] }> => {
+    //destructure options
+    const {
+      cursor = "",
+      limit = Infinity,
+      sortFields = ["+_id"],
+      maxOperations = Infinity
+    } = options
+
+    // check limit
+    if (limit > maxOperations) throw Error(`limit must be <= ${maxOperations}.`)
+    else if (limit <= 0) throw Error(`limit must be more than 0.`)
+    else if (!Number.isInteger(limit)) throw Error(`limit must be an integer.`)
+
+    // calculate total
+    const total = await executeQuery<number, Document>(
+      getDocsCountByQuery<Document>(Model)(filterQuery)()
+    )()
+
+    // generate a sort query
     const sortQuery = generateSortQuery(sortFields)
 
-    let docQuery = getDocsByQuery(Model, filterQuery).sort(sortQuery)
+    // generate a document query
+    let docQuery = (
+      await getDocsByQuery<Document>(Model)(filterQuery)({
+        maxOperations
+      })
+    )()
 
-    limit = Math.ceil(limit)
-    if (limit > MAX_DB_OPERATIONS.value || limit <= 0)
-      throw Error(
-        `You can only get up to ${MAX_DB_OPERATIONS.value} at a time and your limit must be more than 0.`
-      )
+    // sort the document query
+    docQuery = docQuery.sort(sortQuery)
 
+    // if cursor is included, add it to the document query
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
+      console.log(decryptedCursor)
       docQuery = docQuery.where(decryptedCursor)
-
-      // const amountLeft = await getDocsCountByQuery(Model, filterQuery)
-      //   .where(decryptedCursor)
-      //   .exec()
-
-      // currentPage =
-      //   total - amountLeft < limit
-      //     ? totalPages
-      //     : totalPages - Math.ceil(amountLeft / limit)
     }
 
-    const data = await docQuery.limit(limit + 1).exec()
+    // query data, add 1 to easily allow hasMore calculation
+    const data = await executeQuery<Document[], Document>(
+      docQuery.limit(limit + 1)
+    )()
 
+    // calculate hasMore and initialize cursor
     const hasMore = data.length > limit
     let nextCursor = cursor
 
+    // if there is more, remove last element and calculate cursor
     if (hasMore) {
       data.pop()
-      const nextDocument = data[data.length - 1]
-      nextCursor = encrypt(generateCursor(nextDocument, sortQuery))
+      const lastDocument = data[data.length - 1]
+      console.log(lastDocument)
+      nextCursor = encrypt(generateCursor(lastDocument, sortQuery))
     }
 
     return {
       data,
       total,
-      // totalPages,
-      // currentPage,
       hasMore,
       limit,
       cursor: nextCursor
     }
   }
-)
 
-export const getDocsPaginate = getDocsByQueryPaginate(__, {})
+interface GetDocsByBuiltQueryPaginateOptions {
+  union?: boolean
+  cursor?: string
+  limit?: number
+  sortFields?: string[]
+  maxOperations?: number
+}
 
-export const getDocsByBuiltQueryPaginate = curry(
+/**
+ * Finds multiple documents by Built Query and paginates them
+ * @param Model the document model to be found (curried)
+ * @param filterFields an object containing filters with optional operators (curried). Example: { _id[in]: ["id1", "id2"]}
+ * @param options.union whether or not the filters should be the union of all or the intersection. default: false
+ * @param options.cursor an encrypted string that allows one to select the next batch of documents if necessary. default: ""
+ * @param options.limit a limit to the number of documents per page. default: Infinity
+ * @param options.sortFields a list of sort fields. + and - dictate ascending and descending respectively. default: ["+_id"]
+ * @param options.maxOperations the max operations before an error is thrown. default: Infinity
+ * @returns a list of documents with limit, cursor, and total information, and also whether or not there's more
+ */
+export const getDocsByBuiltQueryPaginate =
+  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  (filterFields: { [key: string]: any }) =>
   async (
-    Model: BaseModel,
-    filterFields: { [key: string]: any },
-    union: boolean,
-    cursor: string,
-    limit: number,
-    sortFields: string[]
-  ) => {
-    return await getDocsByQueryPaginate(
-      Model,
-      generateFilterQuery(filterFields, union),
+    options: GetDocsByBuiltQueryPaginateOptions
+  ): Promise<PaginationResults & { data: Document[] }> => {
+    //destructure options
+    const {
+      union = false,
+      cursor = "",
+      limit = Infinity,
+      sortFields = ["+_id"],
+      maxOperations = Infinity
+    } = options
+
+    return await getDocsByQueryPaginate<Document>(Model)(
+      generateFilterQuery<Document>(filterFields, { union })
+    )({
       cursor,
       limit,
-      sortFields
-    )
+      sortFields,
+      maxOperations
+    })
   }
-)
 
-// GET Field Calls
+/**
+ * =====================================================================
+ * =====================================================================
+ *
+ * Miscellaneous Document Wrappers:
+ * - populateDocs()
+ *
+ * =====================================================================
+ * =====================================================================
+ */
 
-// get a field based on a query and path
-export const getField = curry(
-  async (docQuery: BaseQuerySingle, fieldPath: string) => {
-    return getDeepNestedValue(fieldPath, await docQuery.exec())
-  }
-)
-
-// get multiple fields based on a query and path
-export const getFieldsByQuery = curry(
-  async (docQuery: BaseQueryMultiple, fieldPath: string) => {
-    const data = await docQuery.exec()
-    return data.map((doc) => getDeepNestedValue(fieldPath, doc))
-  }
-)
+/**
+ * Changes refs into actual populated documents
+ * @param docs the documents that need to be populated
+ * @param populate the populate string. Example: "author stories"
+ * @returns a list of documents that have been populated
+ */
+export const populateDocs = async <Document extends MongooseDocument>(
+  docs: Document | Document[],
+  populate: string
+): Promise<Document[]> => {
+  if (!Array.isArray(docs)) docs = [docs]
+  return await pluralizer(
+    async (doc: Document) => await doc.populate(populate)
+  )(docs)
+}
