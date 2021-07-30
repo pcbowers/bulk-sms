@@ -3,6 +3,7 @@
   "rules": {
     "no-undef": "off",
     "no-unused-vars": "off",
+    "no-prototype-builtins": "off",
     "@next/next/no-sync-scripts": "off"
   }
 }

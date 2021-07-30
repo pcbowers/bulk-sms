@@ -6,8 +6,12 @@ import {
   deleteDocById,
   deleteDocsByBuiltQuery,
   getDocById,
+  getDocsByBuiltQuery,
   getDocsByBuiltQueryPaginate,
+  getDocsByQuery,
   getDocsByQueryPaginate,
+  getDocsCountByBuiltQuery,
+  getDocsCountByQuery,
   updateDocById,
   updateDocsByBuiltQuery
 } from "./helpers"
@@ -20,6 +24,11 @@ export interface DefaultParams {
 
 export interface ExtendedRequest extends NextApiRequest {
   session: Session
+  user: {
+    email: string
+    name: string
+    picture: string
+  }
 }
 
 export interface CookieOptions {
@@ -32,6 +41,7 @@ export interface ExtendedResponse extends NextApiResponse {
 }
 
 // middlewares
+export { executeQuery } from "./helpers"
 export { withCookies } from "./middleware/cookies"
 export { withDatabase } from "./middleware/database"
 export { withQueryCleanse } from "./middleware/query_cleanse"
@@ -59,10 +69,16 @@ export {
 
 // database functions
 export const contact = {
+  count: {
+    many: getDocsCountByBuiltQuery<ContactDocument>(Contact),
+    all: getDocsCountByQuery<ContactDocument>(Contact)({})
+  },
   get: {
     one: getDocById<ContactDocument>(Contact),
-    many: getDocsByBuiltQueryPaginate<ContactDocument>(Contact),
-    all: getDocsByQueryPaginate<ContactDocument>(Contact)({})
+    many: getDocsByBuiltQuery<ContactDocument>(Contact),
+    manyPaginate: getDocsByBuiltQueryPaginate<ContactDocument>(Contact),
+    all: getDocsByQuery<ContactDocument>(Contact)({}),
+    allPaginate: getDocsByQueryPaginate<ContactDocument>(Contact)({})
   },
   update: {
     one: updateDocById<ContactDocument>(Contact),

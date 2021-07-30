@@ -62,5 +62,11 @@ const contactSchema = new Schema<ContactDocument>(
   { timestamps: true }
 )
 
+contactSchema.pre("save", (next) => {
+  console.log(this)
+  console.log("hi, this is pre save!")
+  next()
+})
+
 export const Contact: Model<ContactDocument> =
   models.Contact || model("Contact", contactSchema)

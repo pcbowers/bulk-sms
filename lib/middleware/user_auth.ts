@@ -15,5 +15,7 @@ export const withUserAuthentication: Middleware<
   )
     return res.status(401).json(JSON.stringify({ error: "user unauthorized" }))
 
+  req.user = user
+
   next()
 }

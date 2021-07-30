@@ -41,16 +41,24 @@ export const createBindings = pluralizer(createBinding)
 
 export const updateBinding = async ({
   id,
-  phoneNumber
+  phoneNumber,
+  ...otherValues
 }: {
   id: string
   phoneNumber: string
 }) => {
-  return await service.bindings.create({
+  const binding = await service.bindings.create({
     identity: id,
     bindingType: "sms",
     address: phoneNumber
   })
+
+  return {
+    twilioBindingId: binding.sid,
+    twilioIdentity: binding.identity,
+    phoneNumber,
+    ...otherValues
+  }
 }
 
 export const updateBindings = pluralizer(updateBinding)
