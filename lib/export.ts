@@ -81,6 +81,7 @@ export const text = {
   respond: twimlResponse,
   boradcast: createBroadcast
 }
+
 export const binding = {
   get: {
     one: getBinding,
