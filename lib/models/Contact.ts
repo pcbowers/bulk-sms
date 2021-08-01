@@ -9,12 +9,12 @@ import {
 } from "mongoose"
 
 export interface ContactSchema {
-  phoneNumber?: string
+  phoneNumber: string
   name?: string
   email?: string
   admin?: boolean
-  twilioBindingId?: string
-  twilioIdentity?: string
+  twilioBindingId: string
+  twilioIdentity: string
   tags?: string[]
 }
 
@@ -32,7 +32,7 @@ const contactSchema = new Schema<ContactDocument>(
     phoneNumber: {
       type: String,
       unique: true,
-      sparse: true
+      required: [true, "please provide a phone Number."]
     },
     name: {
       type: String,
@@ -48,10 +48,12 @@ const contactSchema = new Schema<ContactDocument>(
       default: false
     },
     twilioBindingId: {
-      type: String
+      type: String,
+      required: [true, "please provide a twilioBindingId."]
     },
     twilioIdentity: {
-      type: String
+      type: String,
+      required: [true, "please provide a twilioBindingId."]
     },
     tags: [
       {
@@ -61,12 +63,6 @@ const contactSchema = new Schema<ContactDocument>(
   },
   { timestamps: true }
 )
-
-contactSchema.pre("save", (next) => {
-  console.log(this)
-  console.log("hi, this is pre save!")
-  next()
-})
 
 export const Contact: Model<ContactDocument> =
   models.Contact || model("Contact", contactSchema)

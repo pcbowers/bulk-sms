@@ -1,6 +1,6 @@
 import twilio from "twilio"
 import { v4 as uuidv4 } from "uuid"
-import { pluralizer } from "./helpers"
+import { pluralizer } from "./export"
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -17,12 +17,7 @@ export const deleteBinding = async (id: string) => {
 
 export const deleteBindings = pluralizer(deleteBinding)
 
-export const createBinding = async ({
-  phoneNumber,
-  ...otherValues
-}: {
-  phoneNumber: string
-}) => {
+export const createBinding = async (phoneNumber: string) => {
   const binding = await service.bindings.create({
     identity: uuidv4(),
     bindingType: "sms",
@@ -32,36 +27,11 @@ export const createBinding = async ({
   return {
     twilioBindingId: binding.sid,
     twilioIdentity: binding.identity,
-    phoneNumber,
-    ...otherValues
+    phoneNumber
   }
 }
 
 export const createBindings = pluralizer(createBinding)
-
-export const updateBinding = async ({
-  id,
-  phoneNumber,
-  ...otherValues
-}: {
-  id: string
-  phoneNumber: string
-}) => {
-  const binding = await service.bindings.create({
-    identity: id,
-    bindingType: "sms",
-    address: phoneNumber
-  })
-
-  return {
-    twilioBindingId: binding.sid,
-    twilioIdentity: binding.identity,
-    phoneNumber,
-    ...otherValues
-  }
-}
-
-export const updateBindings = pluralizer(updateBinding)
 
 export const getBinding = async (id: string) => {
   return await service.bindings(id).fetch()

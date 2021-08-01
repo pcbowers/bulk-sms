@@ -1,12 +1,15 @@
+import { UpdateWriteOpResult } from "mongoose"
 import nextConnect from "next-connect"
 import {
+  binding,
+  checkAdminStatus,
   contact,
-  createBindings,
   DefaultParams,
-  deleteBindings,
-  executeQuery,
   ExtendedRequest,
   ExtendedResponse,
+  MAX_OPERATIONS,
+  PaginationResults,
+  pluralizer,
   withDatabase,
   withQueryCleanse,
   withSession,
@@ -15,6 +18,8 @@ import {
 import { ContactDocument } from "../../lib/models/Contact"
 
 interface ExtendedParams {
+  ids: string[]
+  phoneNumbers: string[]
   cursor: string
   union: boolean
   limit: number
@@ -32,6 +37,8 @@ handler.use(withUserAuthentication)
 handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
+    ids: "ids[]",
+    phoneNumbers: "string[]",
     cursor: "string",
     union: "boolean",
     limit: "integer",
@@ -41,7 +48,9 @@ handler.use(
 )
 
 handler.get(async (req, res) => {
-  let data
+  let data: PaginationResults & { data: ContactDocument[] }
+
+  console.log(pluralizer)
 
   let {
     cursor = "",
@@ -53,21 +62,20 @@ handler.get(async (req, res) => {
 
   try {
     if (Object.keys(filters).length >= 1)
-      data = await contact.get.manyPaginate(filters)({
+      data = await contact.paginate.many(filters)({
         union,
         cursor,
         limit,
         sortFields: sort,
-        maxOperations: 100
+        maxOperations: MAX_OPERATIONS
       })
     else
-      data = await contact.get.allPaginate({
+      data = await contact.paginate.all({
         cursor,
         limit,
         sortFields: sort,
-        maxOperations: 100
+        maxOperations: MAX_OPERATIONS
       })
-
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -75,62 +83,12 @@ handler.get(async (req, res) => {
 })
 
 handler.post(async (req, res) => {
-  let data
+  let data: ContactDocument[]
 
+  const { phoneNumbers = [] } = req.query
   try {
-    if (!Array.isArray(req.body)) req.body = [req.body]
-
-    if (req.body.some((item: any) => item.admin && !item.email))
-      throw Error(`an admin must have an email address`)
-
-    const withPhones = req.body.filter((item: any) => item.phoneNumber)
-    const withoutPhones = req.body.filter((item: any) => !item.phoneNumber)
-
-    const twilioData = await createBindings(withPhones)
-
-    data = await contact.create.many([...withoutPhones, ...twilioData])
-
-    return res.status(200).json(data)
-  } catch (error) {
-    return res.status(400).json({ error: error.message })
-  }
-})
-
-handler.delete(async (req, res) => {
-  let data
-
-  let { union = false, ...filters } = req.query
-
-  try {
-    if (!Array.isArray(req.body)) req.body = [req.body]
-
-    const items = await executeQuery<ContactDocument[], ContactDocument>(
-      (
-        await contact.get.many(filters)({ union })
-      )()
-    )()
-
-    const adminsToDelete = items.filter((item) => item.admin)
-
-    if (adminsToDelete.length) {
-      console.log(req.user)
-      if (adminsToDelete.some((item) => item.email === req.user.email))
-        throw Error("you cannot delete yourself")
-
-      const count = await executeQuery<number, ContactDocument>(
-        contact.count.many(filters)({ union })
-      )()
-      if (adminsToDelete.length - count < 1)
-        throw Error("you must have at least one admin")
-    }
-
-    const itemsWithBindings = items.filter((item) => item.twilioBindingId) as {
-      twilioBindingId: string
-    }[]
-
-    await deleteBindings(itemsWithBindings.map((item) => item.twilioBindingId))
-    data = await contact.delete.many(filters)({ union })
-
+    const twilioData = await binding.create.many(phoneNumbers)
+    data = await contact.create.many(twilioData)()
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -138,7 +96,7 @@ handler.delete(async (req, res) => {
 })
 
 handler.patch(async (req, res) => {
-  let data
+  let data: UpdateWriteOpResult
 
   let { overwrite = false, union = false, ...filters } = req.query
 
@@ -151,7 +109,7 @@ handler.patch(async (req, res) => {
       req.body.email
     )
       throw Error(
-        "you cannot batch update a phoneNumber, admin, email, or twilio information"
+        "you cannot batch update a phoneNumber, admin, email, or twilio information."
       )
 
     const data = await contact.update.many(filters)(req.body, {
@@ -165,4 +123,25 @@ handler.patch(async (req, res) => {
   }
 })
 
-export default handler
+handler.delete(async (req, res) => {
+  let data: {
+    ok?: number | undefined
+    n?: number | undefined
+    deletedCount?: number | undefined
+  }
+
+  const { ids = [] } = req.query
+  try {
+    const twilioBindingIds = (await contact.get.many({ "ids[in]": ids })()).map(
+      (contact) => contact.twilioBindingId
+    )
+    await checkAdminStatus(twilioBindingIds, req)
+    await binding.delete.many(twilioBindingIds)
+    data = await contact.delete.many({
+      "twilioBindingId[in]": twilioBindingIds
+    })()
+    return res.status(200).json(data)
+  } catch (error) {
+    return res.status(400).json({ error: error.message })
+  }
+})
