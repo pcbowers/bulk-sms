@@ -8,7 +8,7 @@ import {
   UpdateQuery,
   UpdateWriteOpResult
 } from "mongoose"
-import { decrypt, encrypt, pluralizer } from "./export"
+import { decrypt, encrypt, pluralizer } from "./helpers"
 
 /**
  * =====================================================================
@@ -875,7 +875,8 @@ export const getDocsByQueryPaginate =
     // generate a document query
     let docQuery = (
       await getDocsByQuery<Document, false>(Model)(filterQuery)({
-        maxOperations
+        maxOperations,
+        executeImmediately: false
       })
     )({ execute: false })
 

@@ -9,7 +9,6 @@ import {
   ExtendedResponse,
   MAX_OPERATIONS,
   PaginationResults,
-  pluralizer,
   withDatabase,
   withQueryCleanse,
   withSession,
@@ -37,7 +36,7 @@ handler.use(withUserAuthentication)
 handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
-    ids: "ids[]",
+    ids: "string[]",
     phoneNumbers: "string[]",
     cursor: "string",
     union: "boolean",
@@ -49,8 +48,6 @@ handler.use(
 
 handler.get(async (req, res) => {
   let data: PaginationResults & { data: ContactDocument[] }
-
-  console.log(pluralizer)
 
   let {
     cursor = "",
@@ -131,10 +128,12 @@ handler.delete(async (req, res) => {
   }
 
   const { ids = [] } = req.query
+
   try {
-    const twilioBindingIds = (await contact.get.many({ "ids[in]": ids })()).map(
+    const twilioBindingIds = (await contact.get.many({ "_id[in]": ids })()).map(
       (contact) => contact.twilioBindingId
     )
+
     await checkAdminStatus(twilioBindingIds, req)
     await binding.delete.many(twilioBindingIds)
     data = await contact.delete.many({
@@ -145,3 +144,5 @@ handler.delete(async (req, res) => {
     return res.status(400).json({ error: error.message })
   }
 })
+
+export default handler
