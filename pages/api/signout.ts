@@ -11,9 +11,9 @@ handler.use(withSession)
 handler.get(async (req, res) => {
   try {
     req.session.destroy()
-    res.redirect(`/?redirect=${encodeURI("sign out successful")}`)
+    res.redirect(`/?alert=Sign Out Successful&alertType=success`)
   } catch (error) {
-    res.redirect(`/?redirect=${encodeURI("sign out failed")}`)
+    res.redirect(`/?alert=Sign Out Failed&alertType=error`)
   }
 })
 

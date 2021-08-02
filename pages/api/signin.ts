@@ -33,7 +33,7 @@ async function getUserData(req: ExtendedRequest) {
   const potentialAdmin = await contact.get.one.query({ email: payload.email })()
 
   if (potentialAdmin === null || !potentialAdmin.admin)
-    throw Error("not authorized.")
+    throw Error("Not Authorized")
 
   return {
     email: payload.email,
@@ -48,13 +48,13 @@ handler.post(async (req, res) => {
       req.session.set("user", await getUserData(req))
       await req.session.save()
       return res.redirect(
-        `/admin?redirect=${encodeURI("successfuly logged in")}`
+        `/admin?alert=Successfuly Logged In&alertType=success`
       )
     } else {
-      return res.redirect(`/admin?redirect=${encodeURI("already logged in")}`)
+      return res.redirect(`/admin?alert=Already Logged In`)
     }
   } catch (error) {
-    return res.redirect(`/?redirect=${encodeURI(error.message)}`)
+    return res.redirect(`/?alert=${error.message}&alertType=error`)
   }
 })
 

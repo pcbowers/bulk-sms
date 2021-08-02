@@ -28,9 +28,9 @@ export default function Login() {
         data-type="standard"
         data-size="large"
         data-theme="outline"
-        data-text="sign_in_with"
+        data-text="signin"
         data-shape="circle"
-        data-width="250"
+        data-width="50"
       />
     </>
   )

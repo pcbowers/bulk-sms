@@ -12,7 +12,7 @@ handler.get(async (req, res) => {
   const user = req.session.get("user")
 
   if (user) return res.status(200).json({ isSignedIn: true, ...user })
-  else return res.status(401).json({ isSignedIn: false })
+  else return res.status(200).json({ isSignedIn: false })
 })
 
 handler.get(async (req, res) => {

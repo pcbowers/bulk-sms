@@ -9,6 +9,10 @@ class MyDocument extends Document {
           <script src="theme.js" />
           <Main />
           <NextScript />
+          <div
+            className="fixed flex flex-col gap-2 left-5 right-5 bottom-3"
+            id="alerts"
+          ></div>
         </body>
       </Html>
     )

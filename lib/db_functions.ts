@@ -70,7 +70,6 @@ export const generateCursor = <Document extends MongooseDocument>(
   lastDocument: Document,
   sortQuery: [string, number][]
 ): FilterQuery<Document> => {
-  console.log(lastDocument.get("asdfweqr"), lastDocument)
   // build or query to generate cursor
   return {
     $or: sortQuery.map((sortParam, index) => {
@@ -225,8 +224,6 @@ export const createDocs =
     const { maxOperations = Infinity } = options
 
     await checkMax(Model, maxOperations, "create", schemas.length)
-
-    console.log(Model)
 
     return await Model.insertMany(schemas)
   }
@@ -888,7 +885,6 @@ export const getDocsByQueryPaginate =
     // if cursor is included, add it to the document query
     if (cursor) {
       const decryptedCursor = decrypt(cursor)
-      console.log(decryptedCursor)
       docQuery = docQuery.where(decryptedCursor)
     }
 
@@ -903,7 +899,6 @@ export const getDocsByQueryPaginate =
     if (hasMore) {
       data.pop()
       const lastDocument = data[data.length - 1]
-      console.log(lastDocument)
       nextCursor = encrypt(generateCursor(lastDocument, sortQuery))
     }
 
