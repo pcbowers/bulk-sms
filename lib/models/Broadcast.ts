@@ -34,35 +34,43 @@ const broadcastSchema = new Schema<BroadcastDocument>(
   {
     message: {
       type: String,
-      required: [true, "please specify a message"]
+      required: [true, "please specify a message"],
+      cast: false
     },
     totalRequested: {
       type: Number,
-      required: [true, "please specify the total requested"]
+      required: [true, "please specify the total requested"],
+      cast: false
     },
     totalQueued: {
       type: Number,
-      required: [true, "please specify the total queued"]
+      required: [true, "please specify the total queued"],
+      cast: false
     },
     totalFailed: {
       type: Number,
-      required: [true, "please specify the total failed"]
+      required: [true, "please specify the total failed"],
+      cast: false
     },
     totalSent: {
       type: Number,
-      required: [true, "please specify the total sent"]
+      required: [true, "please specify the total sent"],
+      cast: false
     },
     totalDelivered: {
       type: Number,
-      required: [true, "please specify the total delivered"]
+      required: [true, "please specify the total delivered"],
+      cast: false
     },
     totalUndelivered: {
       type: Number,
-      required: [true, "please specify the total undelivered"]
+      required: [true, "please specify the total undelivered"],
+      cast: false
     },
     tags: [
       {
-        type: String
+        type: String,
+        cast: false
       }
     ],
     contacts: [

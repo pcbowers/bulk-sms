@@ -1,9 +1,7 @@
 import nextConnect from "next-connect"
 import { BindingInstance } from "twilio/lib/rest/notify/v1/service/binding"
+import { checkAdminStatus } from "../../lib/api_functions"
 import {
-  binding,
-  checkAdminStatus,
-  contact,
   DefaultParams,
   ExtendedRequest,
   ExtendedResponse,
@@ -11,8 +9,8 @@ import {
   withQueryCleanse,
   withSession,
   withUserAuthentication
-} from "../../lib/export"
-import { ContactDocument } from "../../lib/models/Contact"
+} from "../../lib/middlewares"
+import { binding, contact, ContactDocument } from "../../lib/models"
 
 interface ExtendedParams {
   phoneNumbers: string[]

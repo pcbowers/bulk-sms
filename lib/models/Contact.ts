@@ -32,28 +32,34 @@ const contactSchema = new Schema<ContactDocument>(
     phoneNumber: {
       type: String,
       unique: true,
-      required: [true, "please provide a phone Number."]
+      required: [true, "please provide a phone Number."],
+      cast: false
     },
     name: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     email: {
       type: String,
       unique: true,
-      sparse: true
+      sparse: true,
+      cast: false
     },
     admin: {
       type: Boolean,
-      default: false
+      default: false,
+      cast: false
     },
     twilioBindingId: {
       type: String,
-      required: [true, "please provide a twilioBindingId."]
+      required: [true, "please provide a twilioBindingId."],
+      cast: false
     },
     twilioIdentity: {
       type: String,
-      required: [true, "please provide a twilioBindingId."]
+      required: [true, "please provide a twilioBindingId."],
+      cast: false
     },
     tags: [
       {

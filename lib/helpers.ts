@@ -1,5 +1,4 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
-import { contact, ExtendedRequest } from "./export"
 
 /**
  * =====================================================================
@@ -87,27 +86,4 @@ export const pluralizer = (func: Function) => {
       })
     )
   }
-}
-
-export const checkAdminStatus = async (
-  twilioBindingIds: string[],
-  req: ExtendedRequest
-) => {
-  const potentialAdmins = (
-    await contact.get.many({
-      "twilioBindingId[in]": twilioBindingIds
-    })()
-  )
-    .filter((contact) => contact.admin)
-    .map((contact) => contact.email)
-
-  const allAdmins = await contact.get.many({
-    admin: true
-  })()
-
-  if (potentialAdmins.includes(req.user?.email))
-    throw Error(`you cannot remove yourself, you are an admin.`)
-
-  if (allAdmins.length - potentialAdmins.length < 1)
-    throw Error(`there must be at least one admin.`)
 }

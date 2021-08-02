@@ -1,15 +1,17 @@
 import twilio from "twilio"
 import { v4 as uuidv4 } from "uuid"
+import {
+  CURRENT_URL,
+  TWILIO_ACCOUNT_SID,
+  TWILIO_AUTH_TOKEN,
+  TWILIO_NOTIFY_SERVICE_SID,
+  TWILIO_NUMBER
+} from "./config"
 import { pluralizer } from "./helpers"
 
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-)
+const client = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 
-export const service = client.notify.services(
-  String(process.env.TWILIO_NOTIFY_SERVICE_SID)
-)
+export const service = client.notify.services(String(TWILIO_NOTIFY_SERVICE_SID))
 
 export const deleteBinding = async (id: string) => {
   return await service.bindings(id).remove()
@@ -54,10 +56,10 @@ export const getTexts = async (id: string) => {
   return [
     ...(await client.messages.list({
       from: phoneNumber,
-      to: process.env.TWILIO_NUMBER
+      to: TWILIO_NUMBER
     })),
     ...(await client.messages.list({
-      from: process.env.TWILIO_NUMBER,
+      from: TWILIO_NUMBER,
       to: phoneNumber
     }))
   ].sort((a, b) => a.dateSent.getTime() - b.dateSent.getTime())
@@ -75,7 +77,7 @@ export const createBroadcast = async ({
   const msg = await service.notifications.create({
     identity: identities,
     body: message,
-    deliveryCallbackUrl: process.env.NEXTAUTH_URL + "/api/messages/" + id
+    deliveryCallbackUrl: CURRENT_URL + "/api/messages/" + id
   })
 
   return {

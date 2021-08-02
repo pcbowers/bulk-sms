@@ -28,19 +28,23 @@ const inboxSchema = new Schema<InboxDocument>(
   {
     name: {
       type: String,
-      required: [true, "please specify a name"]
+      required: [true, "please specify a name"],
+      cast: false
     },
     description: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     unreadCount: {
       type: Number,
-      default: 0
+      default: 0,
+      cast: false
     },
     messages: [
       {
-        type: String
+        type: String,
+        cast: false
       }
     ]
   },

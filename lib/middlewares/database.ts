@@ -1,5 +1,5 @@
 import { Middleware } from "next-connect"
-import { ExtendedRequest, ExtendedResponse } from "../export"
+import { ExtendedRequest, ExtendedResponse } from "../middlewares"
 import { connectToDatabase } from "../mongoose"
 
 export const withDatabase: Middleware<ExtendedRequest, ExtendedResponse> =

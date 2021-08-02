@@ -1,12 +1,13 @@
 import { Middleware } from "next-connect"
 import { ironSession } from "next-iron-session"
-import { ExtendedRequest, ExtendedResponse } from "../export"
+import { CURRENT_URL, SESSION_SECRET } from "../config"
+import { ExtendedRequest, ExtendedResponse } from "../middlewares"
 
 export const withSession: Middleware<ExtendedRequest, ExtendedResponse> =
   ironSession({
     cookieName: "bulk-sms-session-cookie",
-    password: process.env.NEXTAUTH_SECRET || "",
+    password: SESSION_SECRET,
     cookieOptions: {
-      secure: process.env.NODE_ENV === "production"
+      secure: CURRENT_URL === "http://localhost:3000"
     }
   })

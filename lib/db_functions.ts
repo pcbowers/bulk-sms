@@ -3,12 +3,14 @@ import {
   Document as MongooseDocument,
   EnforceDocument,
   FilterQuery,
-  Model,
+  Model as MongooseModel,
   Query,
   UpdateQuery,
   UpdateWriteOpResult
 } from "mongoose"
 import { decrypt, encrypt, pluralizer } from "./helpers"
+
+export const MAX_OPERATIONS = 2000
 
 /**
  * =====================================================================
@@ -197,7 +199,7 @@ const generateFilterQuery = <Document extends MongooseDocument>(
  * @returns the created document
  */
 export const createDoc =
-  <Document extends MongooseDocument, Schema>(Model: Model<Document>) =>
+  <Document extends MongooseDocument, Schema>(Model: MongooseModel<Document>) =>
   async (schema: Schema): Promise<EnforceDocument<Document, {}>> => {
     return await Model.create(schema)
   }
@@ -214,7 +216,7 @@ interface CreateDocsOptions {
  * @returns the created documents
  */
 export const createDocs =
-  <Document extends MongooseDocument, Schema>(Model: Model<Document>) =>
+  <Document extends MongooseDocument, Schema>(Model: MongooseModel<Document>) =>
   (schemas: Schema[]) =>
   async (
     options: CreateDocsOptions = {}
@@ -257,7 +259,7 @@ interface UpdateDocByIdOptions {
  * @returns the updated document or null if it is not found
  */
 export const updateDocById =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   async (
     id: string,
     schema: UpdateQuery<Document>,
@@ -286,7 +288,7 @@ interface UpdateDocByQueryOptions {
  * @returns the updated document or null if it is not found
  */
 export const updateDocByQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterQuery: FilterQuery<Document>) =>
   async (
     schema: UpdateQuery<Document>,
@@ -317,7 +319,7 @@ interface UpdateDocByBuiltQueryOptions {
  * @returns the updated document or null if it is not found
  */
 export const updateDocByBuiltQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterFields: { [key: string]: any }) =>
   async (
     schema: UpdateQuery<Document>,
@@ -346,7 +348,7 @@ interface UpdateDocsByQueryOptions {
  * @returns an object containing ok, n selected, and nModified
  */
 export const updateDocsByQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterQuery: FilterQuery<Document>) =>
   async (
     schema: UpdateQuery<Document>,
@@ -381,7 +383,7 @@ interface UpdateDocsByBuiltQueryOptions {
  * @returns an object containing ok, n selected, and nModified
  */
 export const updateDocsByBuiltQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterFields: { [key: string]: any }) =>
   async (
     schema: UpdateQuery<Document>,
@@ -421,7 +423,7 @@ export const updateDocsByBuiltQuery =
  * @returns the deleted document or null if not found
  */
 export const deleteDocById =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   async (id: string): Promise<EnforceDocument<Document, {}> | null> => {
     return await Model.findByIdAndDelete(id)
   }
@@ -433,7 +435,7 @@ export const deleteDocById =
  * @returns the deleted document or null if not found
  */
 export const deleteDocByQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterQuery: FilterQuery<Document>) =>
   async (): Promise<EnforceDocument<Document, {}> | null> => {
     return await Model.findOneAndDelete(filterQuery)
@@ -450,7 +452,7 @@ interface DeleteDocByBuiltQueryOptions {
  * @returns the deleted document or null if not found
  */
 export const deleteDocByBuiltQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterFields: { [key: string]: any }) =>
   async (
     options: DeleteDocByBuiltQueryOptions = {}
@@ -474,7 +476,7 @@ interface DeleteDocsByQueryOptions {
  * @returns an object containing ok, n selected, and deleted count
  */
 export const deleteDocsByQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterQuery: FilterQuery<Document>) =>
   async (
     options: DeleteDocsByQueryOptions = {}
@@ -505,7 +507,7 @@ interface DeleteDocsByBuiltQueryOptions {
  * @returns an object containing ok, n selected, and deleted count
  */
 export const deleteDocsByBuiltQuery =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterFields: { [key: string]: any }) =>
   async (
     options: DeleteDocsByBuiltQueryOptions = {}
@@ -629,7 +631,7 @@ interface GetDocsCountByQueryOptions {
 
 export const getDocsCountByQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterQuery: FilterQuery<Document>) =>
   (options: GetDocsCountByQueryOptions = {}) => {
@@ -657,7 +659,7 @@ interface GetDocsCountByBuiltQueryOptions {
  */
 export const getDocsCountByBuiltQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterFields: { [key: string]: any }) =>
   (options: GetDocsCountByBuiltQueryOptions = {}) => {
@@ -683,7 +685,7 @@ interface GetDocByIdOptions {
  */
 export const getDocById =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (id: string, options: GetDocByIdOptions = {}) => {
     // destructure options
@@ -707,7 +709,7 @@ interface GetDocByQueryOptions {
  */
 export const getDocByQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterQuery: FilterQuery<Document>) =>
   (options: GetDocByQueryOptions = {}) => {
@@ -734,7 +736,7 @@ interface GetDocByBuiltQueryOptions {
  */
 export const GetDocByBuiltQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterFields: { [key: string]: any }) =>
   (options: GetDocByBuiltQueryOptions = {}) => {
@@ -761,7 +763,7 @@ interface GetDocsByQueryOptions {
  */
 export const getDocsByQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterQuery: FilterQuery<Document>) =>
   async (options: GetDocsByQueryOptions = {}) => {
@@ -793,7 +795,7 @@ interface GetDocsByBuiltQueryOptions {
  */
 export const getDocsByBuiltQuery =
   <Document extends MongooseDocument, Execute extends boolean>(
-    Model: Model<Document>
+    Model: MongooseModel<Document>
   ) =>
   (filterFields: { [key: string]: any }) =>
   async (options: GetDocsByBuiltQueryOptions = {}) => {
@@ -846,7 +848,7 @@ interface GetDocsByQueryPaginateOptions {
  * @returns a list of documents with limit, cursor, and total information, and also whether or not there's more
  */
 export const getDocsByQueryPaginate =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterQuery: FilterQuery<Document>) =>
   async (
     options: GetDocsByQueryPaginateOptions = {}
@@ -934,7 +936,7 @@ interface GetDocsByBuiltQueryPaginateOptions {
  * @returns a list of documents with limit, cursor, and total information, and also whether or not there's more
  */
 export const getDocsByBuiltQueryPaginate =
-  <Document extends MongooseDocument>(Model: Model<Document>) =>
+  <Document extends MongooseDocument>(Model: MongooseModel<Document>) =>
   (filterFields: { [key: string]: any }) =>
   async (
     options: GetDocsByBuiltQueryPaginateOptions
@@ -993,7 +995,7 @@ export const populateDocs = async <Document extends MongooseDocument>(
  * @param filterQuery the filter query to get a proper count
  */
 export const checkMax = async <Document extends MongooseDocument>(
-  Model: Model<Document>,
+  Model: MongooseModel<Document>,
   maxOperations: number,
   operation: string,
   filterQuery: number | FilterQuery<Document>

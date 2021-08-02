@@ -1,4 +1,5 @@
 import Head from "next/head"
+import Login from "../components/Login"
 import Theme from "../components/Theme"
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       </Head>
 
       <main>
+        <Login />
         <Theme />
       </main>
     </div>

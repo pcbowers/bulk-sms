@@ -24,15 +24,18 @@ const taskSchema = new Schema<TaskDocument>(
   {
     name: {
       type: String,
-      required: [true, "please specify a name"]
+      required: [true, "please specify a name"],
+      cast: false
     },
     description: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     numParameters: {
       type: Number,
-      required: [true, "please specify the number of parameters"]
+      required: [true, "please specify the number of parameters"],
+      cast: false
     }
   },
   { timestamps: true }

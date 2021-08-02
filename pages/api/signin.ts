@@ -1,15 +1,19 @@
 import nextConnect from "next-connect"
+import { GOOGLE_CLIENT_ID } from "../../lib/config"
 import {
   ExtendedRequest,
   ExtendedResponse,
+  withDatabase,
   withSession
-} from "../../lib/export"
+} from "../../lib/middlewares"
+import { contact } from "../../lib/models"
 const { OAuth2Client } = require("google-auth-library")
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID_2)
+const client = new OAuth2Client(GOOGLE_CLIENT_ID)
 
 const handler = nextConnect<ExtendedRequest, ExtendedResponse>()
 handler.use(withSession)
+handler.use(withDatabase)
 
 async function getUserData(req: ExtendedRequest) {
   if (
@@ -21,9 +25,15 @@ async function getUserData(req: ExtendedRequest) {
 
   const ticket = await client.verifyIdToken({
     idToken: req.body.credential,
-    audience: process.env.GOOGLE_CLIENT_ID_2
+    audience: GOOGLE_CLIENT_ID
   })
+
   const payload = ticket.getPayload()
+
+  const potentialAdmin = await contact.get.one.query({ email: payload.email })()
+
+  if (potentialAdmin === null || !potentialAdmin.admin)
+    throw Error("not authorized.")
 
   return {
     email: payload.email,
@@ -37,12 +47,14 @@ handler.post(async (req, res) => {
     if (!req.session.get("user")) {
       req.session.set("user", await getUserData(req))
       await req.session.save()
-      return res.status(200).json(req.session.get("user"))
+      return res.redirect(
+        `/admin?redirect=${encodeURI("successfuly logged in")}`
+      )
     } else {
-      return res.status(200).json(req.session.get("user"))
+      return res.redirect(`/admin?redirect=${encodeURI("already logged in")}`)
     }
   } catch (error) {
-    return res.status(400).json({ error: error.message })
+    return res.redirect(`/?redirect=${encodeURI(error.message)}`)
   }
 })
 

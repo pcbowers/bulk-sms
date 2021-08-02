@@ -1,21 +1,17 @@
 import { UpdateWriteOpResult } from "mongoose"
 import nextConnect from "next-connect"
+import { checkAdminStatus } from "../../lib/api_functions"
+import { MAX_OPERATIONS, PaginationResults } from "../../lib/db_functions"
 import {
-  binding,
-  checkAdminStatus,
-  contact,
   DefaultParams,
   ExtendedRequest,
   ExtendedResponse,
-  MAX_OPERATIONS,
-  PaginationResults,
   withDatabase,
   withQueryCleanse,
   withSession,
   withUserAuthentication
-} from "../../lib/export"
-import { ContactDocument } from "../../lib/models/Contact"
-
+} from "../../lib/middlewares"
+import { binding, contact, ContactDocument } from "../../lib/models"
 interface ExtendedParams {
   ids: string[]
   phoneNumbers: string[]

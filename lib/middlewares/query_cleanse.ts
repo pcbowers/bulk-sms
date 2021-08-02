@@ -1,6 +1,6 @@
 import { NextApiRequest } from "next"
 import { Middleware } from "next-connect"
-import { DefaultParams, ExtendedResponse } from "../export"
+import { DefaultParams, ExtendedResponse } from "../middlewares"
 
 const castType = (newType: string, value: string | string[], key: string) => {
   switch (newType) {

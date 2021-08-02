@@ -62,7 +62,8 @@ const chosenTaskSchema = new Schema<ChosenTaskDocument>(
     },
     parameters: [
       {
-        type: String
+        type: String,
+        cast: false
       }
     ]
   },
@@ -73,15 +74,18 @@ const stepSchema = new Schema<StepDocument>(
   {
     name: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     description: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     keywords: [
       {
-        type: String
+        type: String,
+        cast: false
       }
     ],
     inbox: {
@@ -101,19 +105,23 @@ const flowSchema = new Schema<FlowDocument>(
   {
     name: {
       type: String,
-      required: [true, "please specify a name"]
+      required: [true, "please specify a name"],
+      cast: false
     },
     description: {
       type: String,
-      default: ""
+      default: "",
+      cast: false
     },
     adminOnly: {
       type: Boolean,
-      default: false
+      default: false,
+      cast: false
     },
     sortOrder: {
       type: Number,
-      default: 0
+      default: 0,
+      cast: false
     },
     steps: [
       {

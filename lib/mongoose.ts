@@ -1,6 +1,7 @@
 /* global process, global */
 
 import mongoose, { Mongoose } from "mongoose"
+import { MONGODB_URI } from "./config"
 
 declare module globalThis {
   let mongoose: {
@@ -8,8 +9,6 @@ declare module globalThis {
     promise?: Promise<Mongoose>
   }
 }
-
-const MONGODB_URI = String(process.env.MONGODB_URI)
 
 if (!MONGODB_URI)
   throw new Error("please define the MONGODB_URI environment variable")

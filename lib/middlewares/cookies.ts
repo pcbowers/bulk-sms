@@ -1,6 +1,10 @@
 import { serialize } from "cookie"
 import { Middleware } from "next-connect"
-import { CookieOptions, ExtendedRequest, ExtendedResponse } from "../export"
+import {
+  CookieOptions,
+  ExtendedRequest,
+  ExtendedResponse
+} from "../middlewares"
 
 const createCookie = (
   res: ExtendedResponse,
