@@ -3,16 +3,27 @@ import {
   model,
   Model,
   models,
+  PopulatedDoc,
   Schema,
   SchemaTimestampsConfig,
   Types
 } from "mongoose"
+import { ContactDocument } from "./Contact"
+
+interface MessageSchema {
+  contact: Types.ObjectId
+  messageId: string
+}
+
+interface MessageDocument extends MessageSchema {
+  contact: PopulatedDoc<ContactDocument>
+}
 
 export interface InboxSchema {
   name: string
   description?: string
   unreadCount?: number
-  messages: string[]
+  messages?: MessageDocument[]
 }
 
 export interface InboxDocument
@@ -21,8 +32,24 @@ export interface InboxDocument
     SchemaTimestampsConfig {
   description: string
   unreadCount: number
-  messages: Types.Array<string>
+  messages: Types.Array<MessageDocument>
 }
+
+const messageSchema = new Schema<MessageDocument>(
+  {
+    contact: {
+      type: Schema.Types.ObjectId,
+      required: [true, "please specify a contact"],
+      ref: "Contact"
+    },
+    messageId: {
+      type: String,
+      required: [true, "please specify a message id"],
+      cast: false
+    }
+  },
+  { _id: false }
+)
 
 const inboxSchema = new Schema<InboxDocument>(
   {
@@ -43,8 +70,7 @@ const inboxSchema = new Schema<InboxDocument>(
     },
     messages: [
       {
-        type: String,
-        cast: false
+        type: messageSchema
       }
     ]
   },

@@ -11,7 +11,7 @@ import {
 import { TaskDocument } from "./Task"
 
 interface ChosenTaskSchema {
-  task?: Types.ObjectId
+  task: Types.ObjectId
   parameters?: string[]
 }
 
@@ -41,7 +41,7 @@ export interface FlowSchema {
   description?: string
   adminOnly?: boolean
   sortOrder?: number
-  steps: StepSchema[]
+  steps?: StepSchema[]
 }
 
 export interface FlowDocument

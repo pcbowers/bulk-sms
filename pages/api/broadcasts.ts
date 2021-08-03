@@ -1,5 +1,9 @@
 import nextConnect from "next-connect"
-import { MAX_OPERATIONS, PaginationResults } from "../../lib/db_functions"
+import {
+  MAX_OPERATIONS,
+  PaginationResults,
+  populateDocs
+} from "../../lib/db_functions"
 import {
   DefaultParams,
   ExtendedRequest,
@@ -13,6 +17,7 @@ import { broadcast, BroadcastDocument, contact, text } from "../../lib/models"
 
 interface ExtendedParams {
   tag: string
+  populate: string
   cursor: string
   union: boolean
   limit: number
@@ -31,6 +36,7 @@ handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
     tag: "string",
+    populate: "string",
     ids: "string[]",
     cursor: "string",
     union: "boolean",
@@ -43,6 +49,7 @@ handler.get(async (req, res) => {
   let data: PaginationResults & { data: BroadcastDocument[] }
 
   const {
+    populate = "",
     cursor = "",
     union = false,
     limit = 50,
@@ -66,6 +73,8 @@ handler.get(async (req, res) => {
         sortFields: sort,
         maxOperations: MAX_OPERATIONS
       })
+
+    if (populate) data.data = await populateDocs(data.data, populate)
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -98,9 +107,12 @@ handler.post(async (req, res) => {
       message: req.body
     })
 
-    return res
-      .status(200)
-      .json({ ...data, broadcastId: newBroadcast.id, broadcastTags: [tag] })
+    return res.status(200).json({
+      ...data,
+      broadcastId: newBroadcast.id,
+      broadcastMessage: req.body,
+      broadcastTags: [tag]
+    })
   } catch (error) {
     return res.status(400).json({ error: error.message })
   }

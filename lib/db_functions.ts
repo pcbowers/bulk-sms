@@ -979,7 +979,7 @@ export const populateDocs = async <Document extends MongooseDocument>(
 ): Promise<Document[]> => {
   if (!Array.isArray(docs)) docs = [docs]
   return await pluralizer(
-    async (doc: Document) => await doc.populate(populate)
+    async (doc: Document) => await doc.populate(populate).execPopulate()
   )(docs)
 }
 

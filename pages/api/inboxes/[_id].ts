@@ -1,4 +1,5 @@
 import nextConnect from "next-connect"
+import { populateDocs } from "../../../lib/db_functions"
 import {
   DefaultParams,
   ExtendedRequest,
@@ -12,6 +13,7 @@ import { inbox, InboxDocument } from "../../../lib/models"
 
 interface ExtendedParams {
   _id: string
+  populate: string
   overwrite: boolean
 }
 
@@ -26,6 +28,7 @@ handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
     _id: "string",
+    populate: "string",
     overwrite: "boolean"
   })
 )
@@ -33,10 +36,11 @@ handler.use(
 handler.get(async (req, res) => {
   let data: InboxDocument | null
 
-  let { _id = "" } = req.query
+  let { _id = "", populate = "" } = req.query
 
   try {
     data = await inbox.get.one.query({ _id })()
+    if (populate && data) data = (await populateDocs(data, populate))[0]
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -46,13 +50,14 @@ handler.get(async (req, res) => {
 handler.patch(async (req, res) => {
   let data: InboxDocument | null
 
-  let { overwrite = false, _id = "" } = req.query
+  let { overwrite = false, _id = "", populate = "" } = req.query
 
   try {
     data = await inbox.update.one.query({ _id })(req.body, {
       overwrite
     })
 
+    if (populate && data) data = (await populateDocs(data, populate))[0]
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
@@ -62,9 +67,10 @@ handler.patch(async (req, res) => {
 handler.delete(async (req, res) => {
   let data: InboxDocument | null
 
-  const { _id = "" } = req.query
+  const { _id = "", populate = "" } = req.query
   try {
     data = await inbox.delete.one.query({ _id })()
+    if (populate && data) data = (await populateDocs(data, populate))[0]
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })
