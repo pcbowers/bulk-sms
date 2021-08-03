@@ -2,7 +2,7 @@ import { useRouter } from "next/router"
 import { useEffect } from "react"
 import useSWR from "swr"
 
-interface UserData {
+export interface UserData {
   isSignedIn: boolean
   name: string
   email: string

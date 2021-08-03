@@ -85,6 +85,21 @@ export const alerts = {
   }
 }
 
+function manipulateAlert(message: string | string[]) {
+  if (Array.isArray(message)) return message.join(",")
+  return message
+}
+
+function manipulateAlertType(alertType: string | string[]): AlertType {
+  const newAlertType = Array.isArray(alertType)
+    ? alertType.join(",")
+    : alertType
+
+  if (Object.keys(alerts).includes(newAlertType))
+    return newAlertType as AlertType
+  else return "info"
+}
+
 const Portal = ({ children }: { children?: JSX.Element }) => {
   const mount = document.getElementById("alerts")
   const el = document.createElement("div")
@@ -114,25 +129,31 @@ function AlertClient({
   const [show, toggleShow] = useToggle(true)
 
   const closeAlert = () => {
+    console.log("closing")
     if (routerUsed)
       router.replace(router.pathname, undefined, { shallow: true })
     toggleShow(false)
   }
 
   useEffect(() => {
+    if (!show) toggleShow()
+  }, [alert, alertType])
+
+  useEffect(() => {
+    if (alert) console.log({ alert, alertType })
     const timer = setTimeout(() => {
-      closeAlert()
+      if (alert) closeAlert()
     }, displayLength)
 
     return () => {
       clearTimeout(timer)
     }
-  }, [displayLength, router.pathname])
-
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alert, displayLength, router.pathname])
   if (!show || !alert) return <></>
   return (
     <Portal>
-      <div className={`gap-2 alert ${alerts[alertType].class}`}>
+      <div className={`gap-2 flex-row alert mt-0 ${alerts[alertType].class}`}>
         <div className="flex-none">{alerts[alertType].icon}</div>
         <div className="flex-1">
           <label>{alert}</label>
@@ -168,8 +189,8 @@ export default function Alert({
   routerUsed = false
 }: {
   displayLength?: number
-  alert?: string
-  alertType?: AlertType
+  alert?: string | string[]
+  alertType?: string | string[]
   routerUsed?: boolean
 }) {
   const hasMounted = useHasMounted()
@@ -180,8 +201,8 @@ export default function Alert({
     <>
       <AlertClient
         displayLength={displayLength}
-        alert={alert}
-        alertType={alertType}
+        alert={manipulateAlert(alert)}
+        alertType={manipulateAlertType(alertType)}
         routerUsed={routerUsed}
       />
     </>

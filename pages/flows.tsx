@@ -1,7 +1,7 @@
 import Alert from "../components/Alert"
 import { useUser } from "../hooks/useUser"
 
-export default function Admin() {
+export default function Flows() {
   const { user, mutateUser } = useUser({
     redirectTo: `/?alert=You must be signed in to access this page&alertType=error`
   })
@@ -11,7 +11,7 @@ export default function Admin() {
 
   return (
     <>
-      <Alert displayLength={20000000} alert="Welcome" />
+      <Alert displayLength={3000} alert="Welcome to FLOWS" />
     </>
   )
 }

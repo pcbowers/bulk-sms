@@ -1,0 +1,3 @@
+.alert>:not([hidden])~:not([hidden]) {
+ margin-top: 0
+}

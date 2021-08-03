@@ -3,7 +3,7 @@ import Head from "next/head"
 import { useRouter } from "next/router"
 import { SWRConfig } from "swr"
 import "tailwindcss/tailwind.css"
-import Alert, { alerts, AlertType } from "../components/Alert"
+import Alert from "../components/Alert"
 import Navbar from "../components/Navbar"
 import "../styles/globals.css"
 
@@ -24,21 +24,6 @@ const fetcher = async (url: string) => {
   } catch (error) {
     throw Error(error.message)
   }
-}
-
-function manipulateAlert(message: string | string[]) {
-  if (Array.isArray(message)) return message.join(",")
-  return message
-}
-
-function manipulateAlertType(alertType: string | string[]): AlertType {
-  const newAlertType = Array.isArray(alertType)
-    ? alertType.join(",")
-    : alertType
-
-  if (Object.keys(alerts).includes(newAlertType))
-    return newAlertType as AlertType
-  else return "info"
 }
 
 function MyApp({ Component, pageProps }: AppProps) {
@@ -65,11 +50,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       </Head>
       <Navbar />
       <Component {...pageProps} />
-      <Alert
-        alert={manipulateAlert(alert)}
-        alertType={manipulateAlertType(alertType)}
-        routerUsed={true}
-      />
+      {alert && <Alert alert={alert} alertType={alertType} routerUsed={true} />}
     </SWRConfig>
   )
 }

@@ -1,3 +1,4 @@
+import { OAuth2Client } from "google-auth-library"
 import nextConnect from "next-connect"
 import { GOOGLE_CLIENT_ID } from "../../lib/config"
 import {
@@ -7,15 +8,14 @@ import {
   withSession
 } from "../../lib/middlewares"
 import { contact } from "../../lib/models"
-const { OAuth2Client } = require("google-auth-library")
-
-const client = new OAuth2Client(GOOGLE_CLIENT_ID)
-
 const handler = nextConnect<ExtendedRequest, ExtendedResponse>()
 handler.use(withSession)
 handler.use(withDatabase)
 
 async function getUserData(req: ExtendedRequest) {
+  console.log("is it working")
+  const client = new OAuth2Client(GOOGLE_CLIENT_ID)
+
   if (
     !req.cookies.g_csrf_token ||
     !req.body.g_csrf_token ||
@@ -29,9 +29,8 @@ async function getUserData(req: ExtendedRequest) {
   })
 
   const payload = ticket.getPayload()
-
+  if (!payload) throw Error("User Not Found")
   const potentialAdmin = await contact.get.one.query({ email: payload.email })()
-
   if (potentialAdmin === null || !potentialAdmin.admin)
     throw Error("Not Authorized")
 
