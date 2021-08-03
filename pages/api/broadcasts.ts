@@ -1,6 +1,4 @@
-import { UpdateWriteOpResult } from "mongoose"
 import nextConnect from "next-connect"
-import { checkAdminStatus } from "../../lib/api_functions"
 import { MAX_OPERATIONS, PaginationResults } from "../../lib/db_functions"
 import {
   DefaultParams,
@@ -11,15 +9,15 @@ import {
   withSession,
   withUserAuthentication
 } from "../../lib/middlewares"
-import { binding, contact, ContactDocument } from "../../lib/models"
+import { broadcast, BroadcastDocument, contact, text } from "../../lib/models"
+
 interface ExtendedParams {
-  ids: string[]
-  phoneNumbers: string[]
+  tag: string
   cursor: string
   union: boolean
   limit: number
   sort: string[]
-  overwrite: boolean
+  ids: string[]
 }
 
 interface Request extends ExtendedRequest {
@@ -32,20 +30,19 @@ handler.use(withUserAuthentication)
 handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
+    tag: "string",
     ids: "string[]",
-    phoneNumbers: "string[]",
     cursor: "string",
     union: "boolean",
     limit: "integer",
-    sort: "string[]",
-    overwrite: "boolean"
+    sort: "string[]"
   })
 )
 
 handler.get(async (req, res) => {
-  let data: PaginationResults & { data: ContactDocument[] }
+  let data: PaginationResults & { data: BroadcastDocument[] }
 
-  let {
+  const {
     cursor = "",
     union = false,
     limit = 50,
@@ -55,7 +52,7 @@ handler.get(async (req, res) => {
 
   try {
     if (Object.keys(filters).length >= 1)
-      data = await contact.paginate.many(filters)({
+      data = await broadcast.paginate.many(filters)({
         union,
         cursor,
         limit,
@@ -63,7 +60,7 @@ handler.get(async (req, res) => {
         maxOperations: MAX_OPERATIONS
       })
     else
-      data = await contact.paginate.all({
+      data = await broadcast.paginate.all({
         cursor,
         limit,
         sortFields: sort,
@@ -76,41 +73,34 @@ handler.get(async (req, res) => {
 })
 
 handler.post(async (req, res) => {
-  let data: ContactDocument[]
+  let data
 
-  const { phoneNumbers = [] } = req.query
-  try {
-    const twilioData = await binding.create.many(phoneNumbers)
-    data = await contact.create.many(twilioData)()
-    return res.status(200).json(data)
-  } catch (error) {
-    return res.status(400).json({ error: error.message })
-  }
-})
-
-handler.patch(async (req, res) => {
-  let data: UpdateWriteOpResult
-
-  let { overwrite = false, union = false, ...filters } = req.query
+  const { tag = "all" } = req.query
 
   try {
-    if (
-      req.body.phoneNumber ||
-      req.body.twilioIdentity ||
-      req.body.twilioBindingId ||
-      req.body.admin ||
-      req.body.email
-    )
-      throw Error(
-        "you cannot batch update a phoneNumber, admin, email, or twilio information."
-      )
-
-    data = await contact.update.many(filters)(req.body, {
-      overwrite,
-      union
+    const newBroadcast = await broadcast.create.one({
+      tags: [tag],
+      message: req.body
     })
 
-    return res.status(200).json(data)
+    const filter =
+      tag !== "all" ? { "tags[in]": [tag] } : { "twilioIdentity[exists]": true }
+
+    const identities = (await contact.get.many(filter)()).map(
+      (contact) => contact.twilioIdentity
+    )
+
+    console.log(identities)
+
+    data = await text.broadcast({
+      identities,
+      id: newBroadcast._id,
+      message: req.body
+    })
+
+    return res
+      .status(200)
+      .json({ ...data, broadcastId: newBroadcast.id, broadcastTags: [tag] })
   } catch (error) {
     return res.status(400).json({ error: error.message })
   }
@@ -126,15 +116,7 @@ handler.delete(async (req, res) => {
   const { ids = [] } = req.query
 
   try {
-    const twilioBindingIds = (await contact.get.many({ "_id[in]": ids })()).map(
-      (contact) => contact.twilioBindingId
-    )
-
-    await checkAdminStatus(twilioBindingIds, req)
-    await binding.delete.many(twilioBindingIds)
-    data = await contact.delete.many({
-      "twilioBindingId[in]": twilioBindingIds
-    })()
+    data = await broadcast.delete.many({ "_id[in]": ids })()
     return res.status(200).json(data)
   } catch (error) {
     return res.status(400).json({ error: error.message })

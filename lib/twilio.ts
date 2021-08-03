@@ -67,21 +67,22 @@ export const getTexts = async (id: string) => {
 
 export const createBroadcast = async ({
   identities,
-  message = ""
+  id,
+  message
 }: {
   identities: string[]
-  message?: string
+  id: string
+  message: string
 }) => {
-  const id = uuidv4()
-
+  console.log({ identities, id, message })
   const msg = await service.notifications.create({
     identity: identities,
     body: message,
-    deliveryCallbackUrl: CURRENT_URL + "/api/messages/" + id
+    deliveryCallbackUrl: CURRENT_URL + "/api/broadcasts/" + id
   })
 
   return {
-    ...msg,
+    ...msg.toJSON(),
     id
   }
 }

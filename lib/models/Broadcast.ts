@@ -10,25 +10,58 @@ import {
 } from "mongoose"
 import { ContactDocument } from "./Contact"
 
+interface MessageSchema {
+  contact: Types.ObjectId
+  messageId: string
+}
+
+interface MessageDocument extends MessageSchema {
+  contact: PopulatedDoc<ContactDocument>
+}
+
 export interface BroadcastSchema {
   message: string
-  totalRequested: number
-  totalQueued: number
-  totalFailed: number
-  totalSent: number
-  totalDelivered: number
-  totalUndelivered: number
+  totalRequested?: number
+  totalQueued?: number
+  totalFailed?: number
+  totalSent?: number
+  totalDelivered?: number
+  totalUndelivered?: number
+  totalOther?: number
   tags?: string[]
-  contacts?: Types.ObjectId[]
+  messages?: MessageDocument[]
 }
 
 export interface BroadcastDocument
   extends BroadcastSchema,
     Document,
     SchemaTimestampsConfig {
+  totalRequested: number
+  totalQueued: number
+  totalFailed: number
+  totalSent: number
+  totalDelivered: number
+  totalUndelivered: number
+  totalOther: number
   tags: Types.Array<string>
-  contacts: Types.Array<PopulatedDoc<ContactDocument>>
+  messages: Types.Array<MessageDocument>
 }
+
+const messageSchema = new Schema<MessageDocument>(
+  {
+    contact: {
+      type: Schema.Types.ObjectId,
+      required: [true, "please specify a contact"],
+      ref: "Contact"
+    },
+    messageId: {
+      type: String,
+      required: [true, "please specify a message id"],
+      cast: false
+    }
+  },
+  { _id: false }
+)
 
 const broadcastSchema = new Schema<BroadcastDocument>(
   {
@@ -39,32 +72,36 @@ const broadcastSchema = new Schema<BroadcastDocument>(
     },
     totalRequested: {
       type: Number,
-      required: [true, "please specify the total requested"],
+      default: 0,
       cast: false
     },
     totalQueued: {
       type: Number,
-      required: [true, "please specify the total queued"],
       cast: false
     },
     totalFailed: {
       type: Number,
-      required: [true, "please specify the total failed"],
+      default: 0,
       cast: false
     },
     totalSent: {
       type: Number,
-      required: [true, "please specify the total sent"],
+      default: 0,
       cast: false
     },
     totalDelivered: {
       type: Number,
-      required: [true, "please specify the total delivered"],
+      default: 0,
       cast: false
     },
     totalUndelivered: {
       type: Number,
-      required: [true, "please specify the total undelivered"],
+      default: 0,
+      cast: false
+    },
+    totalOther: {
+      type: Number,
+      default: 0,
       cast: false
     },
     tags: [
@@ -73,10 +110,9 @@ const broadcastSchema = new Schema<BroadcastDocument>(
         cast: false
       }
     ],
-    contacts: [
+    messages: [
       {
-        type: Schema.Types.ObjectId,
-        ref: "Contact"
+        type: messageSchema
       }
     ]
   },

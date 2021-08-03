@@ -13,7 +13,6 @@ handler.use(withSession)
 handler.use(withDatabase)
 
 async function getUserData(req: ExtendedRequest) {
-  console.log("is it working")
   const client = new OAuth2Client(GOOGLE_CLIENT_ID)
 
   if (

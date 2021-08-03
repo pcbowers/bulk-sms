@@ -76,7 +76,7 @@ handler.patch(async (req, res) => {
     )
       throw Error("Only @bedrocklynchburg.com emails can be used.")
 
-    const data = await contact.update.one.query({ _id })(req.body, {
+    data = await contact.update.one.query({ _id })(req.body, {
       overwrite
     })
 
