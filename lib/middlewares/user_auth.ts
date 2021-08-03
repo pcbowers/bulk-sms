@@ -17,7 +17,7 @@ export const withUserAuthentication =
       // we are not on our localhost server
       CURRENT_URL !== "http://localhost:3000" &&
       // method is not excluded
-      !excludedMethods.includes(req.method || "")
+      !excludedMethods.includes((req.method || "").toLowerCase())
     )
       return res
         .status(401)
