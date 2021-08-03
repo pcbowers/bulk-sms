@@ -95,7 +95,7 @@ handler.delete(async (req, res) => {
       ?.twilioBindingId
 
     if (twilioBindingId === undefined)
-      throw Error("this contact does not exist.")
+      throw Error(`${_id} contact does not exist.`)
 
     await checkAdminStatus(twilioBindingId, req)
     await binding.delete.one(twilioBindingId)
