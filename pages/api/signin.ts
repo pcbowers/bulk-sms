@@ -46,18 +46,15 @@ handler.post(async (req, res) => {
       req.session.set("user", await getUserData(req))
       await req.session.save()
       return res.redirect(
+        302,
         `/admin?alert=Successfuly Logged In&alertType=success`
       )
     } else {
-      return res.redirect(`/admin?alert=Already Logged In`)
+      return res.redirect(302, `/admin?alert=Already Logged In`)
     }
   } catch (error) {
-    return res.redirect(`/?alert=${error.message}&alertType=error`)
+    return res.redirect(302, `/?alert=${error.message}&alertType=error`)
   }
-})
-
-handler.get(async (req, res) => {
-  return res.status(200).json(req.session.get("user"))
 })
 
 export default handler

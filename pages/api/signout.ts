@@ -11,9 +11,9 @@ handler.use(withSession)
 handler.get(async (req, res) => {
   try {
     req.session.destroy()
-    res.redirect(`/?alert=Sign Out Successful&alertType=success`)
+    res.redirect(302, `/?alert=Sign Out Successful&alertType=success`)
   } catch (error) {
-    res.redirect(`/?alert=Sign Out Failed&alertType=error`)
+    res.redirect(302, `/?alert=Sign Out Failed&alertType=error`)
   }
 })
 
