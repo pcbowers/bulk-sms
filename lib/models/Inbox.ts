@@ -13,6 +13,7 @@ import { ContactDocument } from "./Contact"
 interface MessageSchema {
   contact: Types.ObjectId
   messageId: string
+  messageContent: string
 }
 
 interface MessageDocument extends MessageSchema {
@@ -45,6 +46,11 @@ const messageSchema = new Schema<MessageDocument>(
     messageId: {
       type: String,
       required: [true, "please specify a message id"],
+      cast: false
+    },
+    messageContent: {
+      type: String,
+      required: [true, "please specify the message content"],
       cast: false
     }
   },
