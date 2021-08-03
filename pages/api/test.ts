@@ -19,7 +19,7 @@ interface Request extends ExtendedRequest {
 
 const handler = nextConnect<Request, ExtendedResponse>()
 handler.use(withSession)
-handler.use(withUserAuthentication)
+handler.use(withUserAuthentication())
 handler.use(withDatabase)
 handler.use(withQueryCleanse<ExtendedParams>({}))
 

@@ -6,6 +6,7 @@ import {
   withDatabase,
   withQueryCleanse,
   withSession,
+  withTwilioAuthentication,
   withUserAuthentication
 } from "../../../lib/middlewares"
 import { broadcast, BroadcastDocument, contact } from "../../../lib/models"
@@ -21,7 +22,8 @@ interface Request extends ExtendedRequest {
 
 const handler = nextConnect<Request, ExtendedResponse>()
 handler.use(withSession)
-handler.use(withUserAuthentication)
+handler.use(withUserAuthentication(["POST"]))
+handler.use(withTwilioAuthentication(["GET", "PATCH", "DELETE"]))
 handler.use(withDatabase)
 handler.use(
   withQueryCleanse<ExtendedParams>({
