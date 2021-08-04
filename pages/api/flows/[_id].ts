@@ -9,7 +9,7 @@ import {
   withSession,
   withUserAuthentication
 } from "../../../lib/middlewares"
-import { inbox, InboxDocument } from "../../../lib/models"
+import { flow, FlowDocument } from "../../../lib/models"
 
 interface ExtendedParams {
   _id: string
@@ -34,12 +34,12 @@ handler.use(
 )
 
 handler.get(async (req, res) => {
-  let data: InboxDocument | null
+  let data: FlowDocument | null
 
   let { _id = "", populate = "" } = req.query
 
   try {
-    data = await inbox.get.one.query({ _id })()
+    data = await flow.get.one.query({ _id })()
     if (populate && data) data = (await populateDocs(data, populate))[0]
     return res.status(200).json(data)
   } catch (error) {
@@ -48,12 +48,12 @@ handler.get(async (req, res) => {
 })
 
 handler.patch(async (req, res) => {
-  let data: InboxDocument | null
+  let data: FlowDocument | null
 
   let { overwrite = false, _id = "", populate = "" } = req.query
 
   try {
-    data = await inbox.update.one.query({ _id })(req.body, {
+    data = await flow.update.one.query({ _id })(req.body, {
       overwrite
     })
 
@@ -65,11 +65,11 @@ handler.patch(async (req, res) => {
 })
 
 handler.delete(async (req, res) => {
-  let data: InboxDocument | null
+  let data: FlowDocument | null
 
   const { _id = "", populate = "" } = req.query
   try {
-    data = await inbox.delete.one.query({ _id })()
+    data = await flow.delete.one.query({ _id })()
     if (populate && data) data = (await populateDocs(data, populate))[0]
     return res.status(200).json(data)
   } catch (error) {

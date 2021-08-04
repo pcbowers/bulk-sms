@@ -90,6 +90,6 @@ export const createBroadcast = async ({
 // create a twiml response
 export const twimlResponse = async (body = "") => {
   let twiml = new twilio.twiml.MessagingResponse()
-  twiml.message(body)
+  if (body) twiml.message(body)
   return twiml.toString()
 }
