@@ -1,4 +1,4 @@
-import Alert from "../components/Alert"
+import Head from "next/head"
 import { useUser } from "../hooks/useUser"
 
 export default function Admin() {
@@ -11,7 +11,9 @@ export default function Admin() {
 
   return (
     <>
-      <Alert displayLength={20000000} alert="Welcome" />
+      <Head>
+        <title>Bulk SMS - Admin Home</title>
+      </Head>
     </>
   )
 }

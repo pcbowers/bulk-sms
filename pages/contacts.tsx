@@ -1,4 +1,4 @@
-import Alert from "../components/Alert"
+import Head from "next/head"
 import { useUser } from "../hooks/useUser"
 
 export default function Contacts() {
@@ -11,7 +11,9 @@ export default function Contacts() {
 
   return (
     <>
-      <Alert displayLength={3000} alert="Welcome to Contacts" />
+      <Head>
+        <title>Bulk SMS - Contacts</title>
+      </Head>
     </>
   )
 }

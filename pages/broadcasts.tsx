@@ -1,6 +1,5 @@
-import Alert from "../components/Alert"
+import Head from "next/head"
 import { useUser } from "../hooks/useUser"
-
 export default function Broadcasts() {
   const { user, mutateUser } = useUser({
     redirectTo: `/?alert=You must be signed in to access this page&alertType=error`
@@ -11,7 +10,9 @@ export default function Broadcasts() {
 
   return (
     <>
-      <Alert displayLength={3000} alert="Welcome to Broadcasts" />
+      <Head>
+        <title>Bulk SMS - Broadcasts</title>
+      </Head>
     </>
   )
 }

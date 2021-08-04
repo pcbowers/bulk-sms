@@ -265,7 +265,7 @@ export default function Navbar() {
               </div>
               <ul
                 tabIndex={0}
-                className="shadow w-36 menu dropdown-content bg-neutral-focus rounded-box"
+                className="shadow w-44 menu dropdown-content bg-neutral-focus rounded-box"
               >
                 <li>
                   <Link href="/api/signout">
@@ -285,6 +285,25 @@ export default function Navbar() {
                         />
                       </svg>
                       <span>Sign Out</span>
+                    </a>
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/api/cleanup">
+                    <a className="flex flex-row gap-1">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="w-6 h-6"
+                      >
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                      </svg>
+                      <span>Check Health</span>
                     </a>
                   </Link>
                 </li>

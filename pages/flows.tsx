@@ -1,4 +1,4 @@
-import Alert from "../components/Alert"
+import Head from "next/head"
 import { useUser } from "../hooks/useUser"
 
 export default function Flows() {
@@ -11,7 +11,9 @@ export default function Flows() {
 
   return (
     <>
-      <Alert displayLength={3000} alert="Welcome to FLOWS" />
+      <Head>
+        <title>Bulk SMS - Flows</title>
+      </Head>
     </>
   )
 }

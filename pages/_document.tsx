@@ -10,7 +10,7 @@ class MyDocument extends Document {
           <Main />
           <NextScript />
           <div
-            className="fixed flex flex-col gap-2 left-5 right-5 bottom-3"
+            className="fixed flex flex-col gap-2 opacity-100 left-5 right-5 bottom-3 bg-base-100 rounded-box"
             id="alerts"
           ></div>
         </body>
