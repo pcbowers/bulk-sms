@@ -34,6 +34,7 @@ import {
   deleteBindings,
   getBinding,
   getBindings,
+  getPhoneNumber,
   getText,
   getTexts,
   twimlResponse
@@ -60,7 +61,8 @@ export const text = {
 export const binding = {
   get: {
     one: getBinding,
-    all: getBindings
+    all: getBindings,
+    phoneNumber: getPhoneNumber
   },
   create: {
     one: createBinding,
