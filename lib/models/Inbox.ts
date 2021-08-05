@@ -40,7 +40,6 @@ const messageSchema = new Schema<MessageDocument>(
   {
     contact: {
       type: Schema.Types.ObjectId,
-      required: [true, "please specify a contact"],
       ref: "Contact"
     },
     messageId: {

@@ -23,7 +23,6 @@ import {
   BroadcastSchema
 } from "./models/Broadcast"
 import { Contact, ContactDocument, ContactSchema } from "./models/Contact"
-import { Flow, FlowDocument, FlowSchema } from "./models/Flow"
 import { Inbox, InboxDocument, InboxSchema } from "./models/Inbox"
 import { Task, TaskDocument, TaskSchema } from "./models/Task"
 import {
@@ -43,7 +42,6 @@ import {
 // types
 export type { BroadcastDocument, BroadcastSchema } from "./models/Broadcast"
 export type { ContactDocument, ContactSchema } from "./models/Contact"
-export type { FlowDocument, FlowSchema } from "./models/Flow"
 export type { InboxDocument, InboxSchema } from "./models/Inbox"
 export type { TaskDocument, TaskSchema } from "./models/Task"
 
@@ -121,6 +119,5 @@ export const contact = functionModel<ContactDocument, ContactSchema>(Contact)
 export const broadcast = functionModel<BroadcastDocument, BroadcastSchema>(
   Broadcast
 )
-export const flow = functionModel<FlowDocument, FlowSchema>(Flow)
 export const inbox = functionModel<InboxDocument, InboxSchema>(Inbox)
 export const task = functionModel<TaskDocument, TaskSchema>(Task)

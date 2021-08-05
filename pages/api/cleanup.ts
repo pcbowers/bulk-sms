@@ -1,3 +1,4 @@
+/* eslint-disable no-redeclare */
 import nextConnect from "next-connect"
 import { BindingInstance } from "twilio/lib/rest/notify/v1/service/binding"
 import {
