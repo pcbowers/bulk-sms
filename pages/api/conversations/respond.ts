@@ -58,9 +58,7 @@ handler.post(async (req, res) => {
   try {
     await addToInbox("All Messages", req.body)
 
-    data = await text.respond(
-      `TODO. Callback function for keywords. body: ${JSON.stringify(req.body)}`
-    )
+    data = await text.respond("")
     res.setHeader("Content-Type", "text/xml")
     return res.status(200).send(data)
   } catch (error) {
